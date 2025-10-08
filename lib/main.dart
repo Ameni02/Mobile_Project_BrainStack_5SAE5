@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'home_page.dart';
+import 'theme/app_colors.dart';
 
 void main() {
   runApp(const MyApp());
@@ -9,28 +11,136 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: HomePage(),
-    );
-  }
-}
+      title: 'Finance Dashboard',
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: const ColorScheme.light(
+          primary: AppColors.primary,
+          secondary: AppColors.accent,
+          surface: AppColors.card,
+          background: AppColors.background,
+          onPrimary: AppColors.primaryForeground,
+          onSecondary: AppColors.accentForeground,
+          onSurface: AppColors.cardForeground,
+          onBackground: AppColors.foreground,
+          error: AppColors.destructive,
+          onError: AppColors.destructiveForeground,
+        ),
+        scaffoldBackgroundColor: AppColors.background,
+        cardColor: AppColors.card,
+        textTheme: const TextTheme(
+          displayLarge: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+          displayMedium: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+          displaySmall: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+          headlineLarge: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+          headlineMedium: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+          headlineSmall: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+          titleLarge: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+          titleMedium: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textPrimary,
+          ),
+          titleSmall: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textSecondary,
+          ),
+          bodyLarge: TextStyle(
+            fontSize: 16,
+            color: AppColors.textPrimary,
+          ),
+          bodyMedium: TextStyle(
+            fontSize: 14,
+            color: AppColors.textPrimary,
+          ),
+          bodySmall: TextStyle(
+            fontSize: 12,
+            color: AppColors.textSecondary,
+          ),
+          labelLarge: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textPrimary,
+          ),
+          labelMedium: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textSecondary,
+          ),
+          labelSmall: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textMuted,
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: AppColors.primaryForeground,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+        cardTheme: CardThemeData(
+          color: AppColors.card,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: AppColors.borderLight),
+          ),
+        ),
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Basic Project"),
-      ),
-      body: const Center(
-        child: Text(
-          "Hello Flutter!",
-          style: TextStyle(fontSize: 24),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: AppColors.input,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: AppColors.borderLight),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: AppColors.borderLight),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: AppColors.primary),
+          ),
         ),
       ),
+      home: const HomeScreen(),
     );
   }
 }
