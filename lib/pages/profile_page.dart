@@ -1,8 +1,9 @@
+// ==================== profile_page.dart ====================
 import 'package:flutter/material.dart';
-import '../models/profile_data.dart';
-import '../components/add_objective_dialog.dart';
 import '../components/todo_list.dart';
 import '../components/notes_list.dart';
+import 'goals_page.dart';
+import '../models/goals_data.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -13,12 +14,22 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin {
   late TabController _tabController;
-  bool _showAddObjectiveDialog = false;
+  int _activeGoalsCount = 0;
+  double _overallProgress = 0.0;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _loadGoalsSummary();
+  }
+
+  Future<void> _loadGoalsSummary() async {
+    await GoalsData.load();
+    setState(() {
+      _activeGoalsCount = GoalsData.goals.where((g) => !g.isArchived && !g.isCompleted).length;
+      _overallProgress = GoalsData.overallProgress;
+    });
   }
 
   @override
@@ -26,7 +37,6 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
     _tabController.dispose();
     super.dispose();
   }
-
 
   Widget _buildHeader() {
     return Row(
@@ -60,7 +70,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Color.fromRGBO(0, 0, 0, 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               ),
@@ -83,7 +93,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Color.fromRGBO(0, 0, 0, 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -134,7 +144,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
             child: TabBarView(
               controller: _tabController,
               children: [
-                _buildObjectivesTab(),
+                _buildGoalsTab(),
                 _buildTodosTab(),
                 _buildNotesTab(),
               ],
@@ -145,222 +155,117 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildObjectivesTab() {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "Financial Goals",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A1A1A),
-                ),
-              ),
-              ElevatedButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _showAddObjectiveDialog = true;
-                  });
-                },
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text("Add Goal"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4A90E2),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
+  Widget _buildGoalsTab() {
+    final progressLabel = (_overallProgress).toStringAsFixed(0) + '%';
+    return GestureDetector(
+      onTap: () async {
+        // Navigate and refresh summary when returning
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const GoalsPage()),
+        );
+        await _loadGoalsSummary();
+      },
+      child: Container(
+        margin: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color.fromRGBO(74, 144, 226, 0.1),
+              Color.fromRGBO(101, 196, 163, 0.1),
             ],
           ),
-          const SizedBox(height: 20),
-          Expanded(
-            child: ListView.builder(
-              itemCount: ProfileData.objectives.length,
-              itemBuilder: (context, index) {
-                final objective = ProfileData.objectives[index];
-                return _buildObjectiveCard(objective);
-              },
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Color.fromRGBO(74, 144, 226, 0.3),
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Color.fromRGBO(74, 144, 226, 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.flag,
+                size: 48,
+                color: Color(0xFF4A90E2),
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          _buildSummaryCard(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildObjectiveCard(Objective objective) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(height: 20),
+            const Text(
+              "Financial Goals",
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1A1A1A),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Tap to view and manage your goals",
+              style: const TextStyle(
+                fontSize: 16,
+                color: Color(0xFF6B7280),
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Dynamic summary
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Column(
                   children: [
-                    Text(
-                      objective.title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1A1A1A),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      objective.category,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF6B7280),
-                      ),
-                    ),
+                    Text('Active', style: TextStyle(color: Colors.grey.shade700)),
+                    const SizedBox(height: 6),
+                    Text('$_activeGoalsCount', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   ],
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4A90E2).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  objective.deadline,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF4A90E2),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "Progress",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF6B7280),
-                ),
-              ),
-              Text(
-                "${objective.progress.toStringAsFixed(0)}%",
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A1A1A),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          LinearProgressIndicator(
-            value: objective.progress / 100,
-            backgroundColor: const Color(0xFFE5E7EB),
-            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF4A90E2)),
-            minHeight: 8,
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "\$${objective.current.toStringAsFixed(0)} / \$${objective.target.toStringAsFixed(0)}",
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF6B7280),
-                ),
-              ),
-              Text(
-                "\$${objective.remaining.toStringAsFixed(0)} to go",
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF65C4A3),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF65C4A3).withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF65C4A3).withOpacity(0.2)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: const BoxDecoration(
-              color: Color(0xFF65C4A3),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.check_circle,
-              color: Colors.white,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Keep it up!",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1A1A1A),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "You're ${ProfileData.overallProgress.toStringAsFixed(0)}% towards your total goals",
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF6B7280),
-                  ),
+                const SizedBox(width: 24),
+                Column(
+                  children: [
+                    Text('Progress', style: TextStyle(color: Colors.grey.shade700)),
+                    const SizedBox(height: 6),
+                    Text(progressLabel, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  ],
                 ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF4A90E2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "View Goals",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Icon(
+                    Icons.arrow_forward,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -383,36 +288,21 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
-      body: Stack(
-        children: [
-          SafeArea(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header
-                    _buildHeader(),
-                    const SizedBox(height: 24),
-                    
-                    // Tabbed Content
-                    _buildTabbedContent(),
-                    const SizedBox(height: 100), // Space for bottom nav
-                  ],
-                ),
-              ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(),
+                const SizedBox(height: 24),
+                _buildTabbedContent(),
+                const SizedBox(height: 100),
+              ],
             ),
           ),
-          AddObjectiveDialog(
-            isOpen: _showAddObjectiveDialog,
-            onClose: () {
-              setState(() {
-                _showAddObjectiveDialog = false;
-              });
-            },
-          ),
-        ],
+        ),
       ),
     );
   }

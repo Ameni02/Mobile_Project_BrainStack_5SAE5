@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'home_page.dart';
 import 'theme/app_colors.dart';
+import 'models/goals_data.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await GoalsData.load();
   runApp(const MyApp());
 }
 
