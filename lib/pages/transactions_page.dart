@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/transaction_data.dart';
 import '../components/add_transaction_dialog.dart';
+import '../services/exchange_rate_service.dart';
+
 
 class TransactionsPage extends StatefulWidget {
   const TransactionsPage({super.key});
@@ -381,54 +383,127 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Row(
-            children: [
-              Icon(transaction.icon, color: Color(int.parse(transaction.color.replaceAll('#', '0xFF')))),
-              const SizedBox(width: 8),
-              Text(transaction.name),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildDetailRow("Category", transaction.category),
-                _buildDetailRow("Date", transaction.date),
-                _buildDetailRow("Amount", "\$${transaction.amount.toStringAsFixed(2)}"),
-                _buildDetailRow("Color", transaction.color),
+        String selectedCurrency = "EUR";
+        double? convertedAmount;
+        bool isLoading = false;
 
-                // ✅ Afficher les champs dynamiques supplémentaires
-                if (transaction.extraFields != null && transaction.extraFields!.isNotEmpty)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 8),
-                    child: Text(
-                      "Additional Details",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: Colors.black87,
+        return StatefulBuilder(
+          builder: (context, setState) {
+            Future<void> convert() async {
+              setState(() => isLoading = true);
+              final result = await ExchangeRateService.convertCurrency(
+                transaction.amount,
+                "USD", // devise source par défaut
+                selectedCurrency,
+              );
+              setState(() {
+                convertedAmount = result;
+                isLoading = false;
+              });
+            }
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Row(
+                children: [
+                  Icon(
+                    transaction.icon,
+                    color: Color(int.parse(transaction.color.replaceAll('#', '0xFF'))),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(transaction.name),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildDetailRow("Category", transaction.category),
+                    _buildDetailRow("Date", transaction.date),
+                    _buildDetailRow("Amount", "\$${transaction.amount.toStringAsFixed(2)}"),
+                    const SizedBox(height: 16),
+
+                    // ✅ Section conversion de devise
+                    const Text(
+                      "Currency Conversion",
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Dropdown responsive
+                    DropdownButton<String>(
+                      isExpanded: true, // prend toute la largeur
+                      value: selectedCurrency,
+                      items: const [
+                        DropdownMenuItem(value: "EUR", child: Text("🇪🇺 EUR - Euro")),
+                        DropdownMenuItem(value: "TND", child: Text("🇹🇳 TND - Dinar tunisien")),
+                        DropdownMenuItem(value: "GBP", child: Text("🇬🇧 GBP - Livre sterling")),
+                        DropdownMenuItem(value: "JPY", child: Text("🇯🇵 JPY - Yen japonais")),
+                        DropdownMenuItem(value: "USD", child: Text("🇺🇸 USD - Dollar américain")),
+                        DropdownMenuItem(value: "CAD", child: Text("🇨🇦 CAD - Dollar canadien")),
+                        DropdownMenuItem(value: "CHF", child: Text("🇨🇭 CHF - Franc suisse")),
+                        DropdownMenuItem(value: "SEK", child: Text("🇸🇪 SEK - Couronne suédoise")),
+                        DropdownMenuItem(value: "SAR", child: Text("🇸🇦 SAR - Riyal saoudien")),
+                        DropdownMenuItem(value: "MAD", child: Text("🇲🇦 MAD - Dirham marocain")),
+                        DropdownMenuItem(value: "DZD", child: Text("🇩🇿 DZD - Dinar algérien")),
+                        DropdownMenuItem(value: "EGP", child: Text("🇪🇬 EGP - Livre égyptienne")),
+                        DropdownMenuItem(value: "CNY", child: Text("🇨🇳 CNY - Yuan chinois")),
+                        DropdownMenuItem(value: "INR", child: Text("🇮🇳 INR - Roupie indienne")),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() {
+                            selectedCurrency = value;
+                            convertedAmount = null;
+                          });
+                        }
+                      },
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // Bouton Convert sur nouvelle ligne, full width
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: convert,
+                        child: const Text("Convert"),
                       ),
                     ),
-                  ),
-                ...transaction.extraFields!.entries.map((e) => _buildDetailRow(e.key, e.value.toString())),
+
+                    const SizedBox(height: 12),
+
+                    // Résultat conversion
+                    if (isLoading)
+                      const Center(child: CircularProgressIndicator())
+                    else if (convertedAmount != null)
+                      Text(
+                        "→ ${convertedAmount!.toStringAsFixed(2)} $selectedCurrency",
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Close", style: TextStyle(color: Colors.blue)),
+                ),
               ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Close", style: TextStyle(color: Colors.blue)),
-            ),
-          ],
+            );
+          },
         );
       },
     );
   }
+
 
   void showEditTransactionDialog(Transaction transaction) {
     final nameController = TextEditingController(text: transaction.name);

@@ -7,6 +7,9 @@ import 'components/portfolio_header.dart';
 import 'components/quick_actions.dart';
 import 'components/spending_chart.dart';
 import 'components/recent_transactions.dart';
+import 'pages/news_page.dart';
+import 'pages/crypto_page.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,6 +26,8 @@ class _HomeScreenState extends State<HomeScreen> {
     AnalyticsPage(),
     TransactionsPage(),
     ProfilePage(),
+    NewsPage(),
+    CryptoPage(),
   ];
 
   void _onItemTapped(int index) {
@@ -41,6 +46,8 @@ class _HomeScreenState extends State<HomeScreen> {
           NavigationDestination(icon: Icon(Icons.analytics_outlined), label: 'Analytics'),
           NavigationDestination(icon: Icon(Icons.attach_money_outlined), label: 'Transactions'),
           NavigationDestination(icon: Icon(Icons.person_outline), label: 'Profile'),
+          NavigationDestination(icon: Icon(Icons.article_outlined), label: 'News'),
+          NavigationDestination(icon: Icon(Icons.currency_bitcoin_outlined), label: 'Crypto'),
         ],
       ),
     );
