@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/transaction_data.dart';
 import '../components/add_transaction_dialog.dart';
+import '../components/finance/converted_amount.dart';
+
+Color colorWithOpacity(Color c, double opacity) => Color.fromARGB((opacity * 255).round(), c.red, c.green, c.blue);
 
 class TransactionsPage extends StatefulWidget {
   const TransactionsPage({super.key});
@@ -12,6 +15,7 @@ class TransactionsPage extends StatefulWidget {
 class _TransactionsPageState extends State<TransactionsPage> with TickerProviderStateMixin {
   late TabController _tabController;
   bool _showAddTransactionDialog = false;
+  final String _displayCurrency = 'USD'; // default target currency for display
 
   @override
   void initState() {
@@ -108,7 +112,7 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: colorWithOpacity(Colors.black, 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               ),
@@ -162,10 +166,10 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: colorWithOpacity(color, 0.2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: colorWithOpacity(Colors.black, 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -189,14 +193,16 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
             ],
           ),
           const SizedBox(height: 12),
-          Text(
-            "\$${amount.toStringAsFixed(2)}",
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
+          ConvertedAmount(
+            amount: amount,
+            fromCurrency: 'TND',
+            toCurrencies: ['USD', 'EUR'],
+             style: TextStyle(
+               fontSize: 24,
+               fontWeight: FontWeight.bold,
+               color: color,
+             ),
+           ),
         ],
       ),
     );
@@ -209,7 +215,7 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: colorWithOpacity(Colors.black, 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -344,14 +350,16 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
               ],
             ),
           ),
-          Text(
-            "${isRevenue ? '+' : '-'}\$${transaction.amount.toStringAsFixed(2)}",
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: isRevenue ? const Color(0xFF65C4A3) : const Color(0xFF1A1A1A),
-            ),
-          ),
+          ConvertedAmount(
+            amount: transaction.amount.abs(),
+            fromCurrency: 'TND',
+            toCurrencies: ['USD','EUR'],
+             style: TextStyle(
+               fontSize: 16,
+               fontWeight: FontWeight.w600,
+               color: isRevenue ? const Color(0xFF65C4A3) : const Color(0xFF1A1A1A),
+             ),
+           ),
         ],
       ),
     );

@@ -15,13 +15,13 @@ class _QuoteBannerState extends State<QuoteBanner> {
   @override
   void initState() {
     super.initState();
-    _quoteFuture = QuoteApiService.fetchRandomQuote();
+    _quoteFuture = QuoteApiService.fetchThemedQuote('goals');
   }
 
   void _refresh() {
     // update the future synchronously
     setState(() {
-      _quoteFuture = QuoteApiService.fetchRandomQuote();
+      _quoteFuture = QuoteApiService.fetchThemedQuote('goals');
     });
   }
 

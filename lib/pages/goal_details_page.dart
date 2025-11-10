@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../models/goal_model.dart';
 import '../models/goals_data.dart';
 import '../components/FinancialGoals/add_contribution_dialog.dart';
+import '../components/finance/converted_amount.dart';
 
 class GoalDetailsPage extends StatefulWidget {
   final Goal goal;
@@ -16,6 +17,7 @@ class GoalDetailsPage extends StatefulWidget {
 class _GoalDetailsPageState extends State<GoalDetailsPage> {
   late Goal _goal;
   final NumberFormat _moneyFormat = NumberFormat.currency(symbol: 'TND ', decimalDigits: 2);
+  final String _displayCurrency = 'USD';
 
   @override
   void initState() {
@@ -72,8 +74,9 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
     await showDialog(
       context: context,
       builder: (context) {
+        String? dialogError;
         return StatefulBuilder(builder: (context, setStateDialog) {
-          String? error;
+          String? error = dialogError;
           return AlertDialog(
             title: const Text('Edit Goal'),
             content: SingleChildScrollView(
@@ -130,11 +133,11 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
                   // validate
                   final t = double.tryParse(targetCtrl.text.replaceAll(',', '.'));
                   if (titleCtrl.text.trim().isEmpty) {
-                    setStateDialog(() => error = 'Title is required');
+                    setStateDialog(() => dialogError = 'Title is required');
                     return;
                   }
                   if (t == null || t < 0) {
-                    setStateDialog(() => error = 'Target must be a positive number');
+                    setStateDialog(() => dialogError = 'Target must be a positive number');
                     return;
                   }
 
@@ -270,7 +273,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
                           children: [
                             const Text('Saved', style: TextStyle(color: Colors.grey)),
                             const SizedBox(height: 6),
-                            Text(_formatCurrency(_goal.current), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                            ConvertedAmount(amount: _goal.current, fromCurrency: 'TND', toCurrencies: ['USD','EUR'], style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
                           ],
                         ),
                         Column(
@@ -278,7 +281,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
                           children: [
                             const Text('Target', style: TextStyle(color: Colors.grey)),
                             const SizedBox(height: 6),
-                            Text(_formatCurrency(_goal.target), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                            ConvertedAmount(amount: _goal.target, fromCurrency: 'TND', toCurrencies: ['USD','EUR'], style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
                           ],
                         ),
                       ],
@@ -286,17 +289,15 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: LinearProgressIndicator(
-                              value: (_goal.progress / 100.0).clamp(0.0, 1.0),
-                              minHeight: 12,
-                              backgroundColor: Colors.grey.shade200,
-                              valueColor: const AlwaysStoppedAnimation(Color(0xFF4A90E2)),
-                            ),
+                        Expanded(child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: LinearProgressIndicator(
+                            value: (_goal.progress / 100.0).clamp(0.0, 1.0),
+                            minHeight: 12,
+                            backgroundColor: Colors.grey.shade200,
+                            valueColor: const AlwaysStoppedAnimation(Color(0xFF4A90E2)),
                           ),
-                        ),
+                        )),
                         const SizedBox(width: 12),
                         Text(_percentageLabel, style: const TextStyle(fontWeight: FontWeight.bold)),
                       ],
