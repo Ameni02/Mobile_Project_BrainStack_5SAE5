@@ -201,15 +201,6 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
       );
     }
   }
-  void _resetUI() {
-    setState(() {
-      _showAddNote = false;
-      _showCategorySelector = false;
-      _showAddCategory = false;
-      _selectedCategory = null;
-    });
-    _fabAnimationController.forward();
-  }
 
   Future<void> _addNote() async {
     final title = _titleCtrl.text.trim();
@@ -225,7 +216,11 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
     await _loadNotes();
     _titleCtrl.clear();
     _contentCtrl.clear();
-    _resetUI();
+    setState(() {
+      _showAddNote = false;
+      _selectedCategory = null;
+    });
+    _fabAnimationController.forward();
   }
 
   void _openAddNote() {
