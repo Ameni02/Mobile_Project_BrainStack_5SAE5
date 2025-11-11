@@ -46,7 +46,8 @@ class DB {
         'title': title,
         'content': content,
         'createdAt': DateTime.now().toIso8601String(),
-        'updatedAt': DateTime.now().toIso8601String(),
+        // Suppression de updatedAt initial pour distinguer ajout vs modification
+        'updatedAt': null,
         'categoryId': categoryId,
         'isImportant': 0,
         'isArchived': 0,
@@ -58,7 +59,11 @@ class DB {
 
   static Future<List<Map<String, dynamic>>> getNotes() async {
     final database = await db;
-    final notes = await database.query('notes', orderBy: 'createdAt DESC');
+    // Tri: épinglées d'abord (isPinned DESC), puis par updatedAt DESC (fallback createdAt), puis createdAt DESC pour stabiliser
+    final notes = await database.query(
+      'notes',
+      orderBy: 'isPinned DESC, COALESCE(updatedAt, createdAt) DESC, createdAt DESC',
+    );
 
     List<Map<String, dynamic>> notesWithCategories = [];
     for (var note in notes) {

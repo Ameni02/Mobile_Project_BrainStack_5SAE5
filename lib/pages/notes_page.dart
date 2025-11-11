@@ -429,6 +429,24 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
     }
   }
 
+  Future<void> _togglePinned(Note note) async {
+    final newPinned = !note.isPinned;
+    try {
+      await DB.updateNote(note.id, isPinned: newPinned);
+      // Mettez à jour localement pour un ressenti rapide
+      setState(() {
+        note.isPinned = newPinned;
+        _applySort();
+        _applyFilter();
+      });
+      // Recharger depuis DB pour cohérence (optionnel)
+      await _loadNotes();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erreur lors du pin.')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // FAB visible seulement si aucun overlay
@@ -478,7 +496,7 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
           ? ScaleTransition(
         scale: _fabScaleAnimation,
         child: Padding(
-          padding: const EdgeInsets.only(bottom: 70.0),
+          padding: const EdgeInsets.only(bottom: 0.0),
           child: FloatingActionButton(
             heroTag: 'notesFab',
             onPressed: _openAddNote,
@@ -646,6 +664,7 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
                 note: note,
                 onDelete: () => _deleteNote(note),
                 onTap: () => _openEditNote(note),
+                onTogglePinned: () => _togglePinned(note),
               );
             },
           );
@@ -660,6 +679,7 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
                 note: note,
                 onDelete: () => _deleteNote(note),
                 onTap: () => _openEditNote(note),
+                onTogglePinned: () => _togglePinned(note),
               );
             },
           );

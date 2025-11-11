@@ -8,8 +8,9 @@ class NoteGridItem extends StatelessWidget {
   final VoidCallback? onDelete;
   // Nouveau: callback lors d'un tap pour ouvrir l'édition
   final VoidCallback? onTap;
+  final VoidCallback? onTogglePinned; // nouveau
 
-  const NoteGridItem({super.key, required this.note, this.onDelete, this.onTap});
+  const NoteGridItem({super.key, required this.note, this.onDelete, this.onTap, this.onTogglePinned});
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +23,8 @@ class NoteGridItem extends StatelessWidget {
         borderColor = AppColors.borderLight;
       }
     }
+
+    final pinned = note.isPinned;
 
     return InkWell(
       onTap: onTap,
@@ -82,47 +85,109 @@ class NoteGridItem extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            _buildMeta(),
+            // Ligne meta: date + pin
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Text(
+                    _buildTimeLabel(),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textMuted,
+                      height: 1.1,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _PinButton(
+                  isPinned: pinned,
+                  onPressed: onTogglePinned,
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildMeta() {
-    return Row(
-      children: [
-        if (note.isImportant) ...[
-          const Icon(Icons.star, size: 16, color: AppColors.accent),
-          const SizedBox(width: 6),
-        ],
-        if (note.isPinned) ...[
-          const Icon(Icons.push_pin, size: 16, color: AppColors.textSecondary),
-          const SizedBox(width: 6),
-        ],
-        Expanded(
-          child: Text(
-            _formatRelativeDate(note.updatedAt ?? note.createdAt),
-            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-          ),
-        ),
-      ],
-    );
+  String _buildTimeLabel() {
+    final ref = note.updatedAt ?? note.createdAt;
+    final isModified = note.updatedAt != null && note.updatedAt != note.createdAt;
+    final diff = DateTime.now().difference(ref);
+    String rel;
+    if (diff.inMinutes < 60) {
+      rel = '${diff.inMinutes} min';
+    } else if (diff.inHours < 24) {
+      rel = '${diff.inHours} h';
+    } else if (diff.inDays < 7) {
+      rel = '${diff.inDays} j';
+    } else {
+      rel = '${ref.day}/${ref.month}/${ref.year}';
+    }
+    return (isModified ? 'Modifiée il y a ' : 'Ajoutée il y a ') + rel;
+  }
+}
+
+class _PinButton extends StatefulWidget {
+  final bool isPinned;
+  final VoidCallback? onPressed;
+  const _PinButton({required this.isPinned, this.onPressed});
+  @override
+  State<_PinButton> createState() => _PinButtonState();
+}
+
+class _PinButtonState extends State<_PinButton> with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 250));
+    _scale = CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut);
+    if (widget.isPinned) {
+      _ctrl.forward();
+    }
   }
 
-  String _formatRelativeDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-    if (difference.inMinutes < 60) {
-      return 'Il y a ${difference.inMinutes} min';
-    } else if (difference.inHours < 24) {
-      return 'Il y a ${difference.inHours} h';
-    } else if (difference.inDays == 1) {
-      return 'Hier';
-    } else if (difference.inDays < 7) {
-      return 'Il y a ${difference.inDays} j';
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
+  @override
+  void didUpdateWidget(covariant _PinButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isPinned != widget.isPinned) {
+      _ctrl.reset();
+      if (widget.isPinned) {
+        _ctrl.forward();
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = widget.isPinned ? Colors.amber : AppColors.textSecondary;
+    return ScaleTransition(
+      scale: _scale.drive(Tween(begin: 0.85, end: 1.0)),
+      child: InkWell(
+        onTap: widget.onPressed,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.all(4.0),
+          child: Icon(
+            widget.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+            size: 20,
+            color: color,
+          ),
+        ),
+      ),
+    );
   }
 }
