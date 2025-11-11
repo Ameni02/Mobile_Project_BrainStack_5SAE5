@@ -8,6 +8,9 @@ class CategorySelectorComponent extends StatelessWidget {
   final Function(CategorieNote) onCategorySelected;
   final VoidCallback onAddCategory;
   final VoidCallback onClose;
+  // Nouveaux callbacks pour actions
+  final Function(CategorieNote) onEditCategory;
+  final Function(CategorieNote) onDeleteCategory;
 
   const CategorySelectorComponent({
     super.key,
@@ -16,6 +19,8 @@ class CategorySelectorComponent extends StatelessWidget {
     required this.onCategorySelected,
     required this.onAddCategory,
     required this.onClose,
+    required this.onEditCategory,
+    required this.onDeleteCategory,
   });
 
   @override
@@ -32,7 +37,7 @@ class CategorySelectorComponent extends StatelessWidget {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -71,7 +76,7 @@ class CategorySelectorComponent extends StatelessWidget {
                   const Divider(height: 24, color: AppColors.borderLight),
 
                   // Liste des catégories existantes
-                  ...categories.map((category) => _buildCategoryItem(category)),
+                  ...categories.map((category) => _buildCategoryItem(context, category)),
                 ],
               ),
             ),
@@ -114,7 +119,7 @@ class CategorySelectorComponent extends StatelessWidget {
     );
   }
 
-  Widget _buildCategoryItem(CategorieNote category) {
+  Widget _buildCategoryItem(BuildContext context, CategorieNote category) {
     final isSelected = selectedCategory?.id == category.id;
 
     return InkWell(
@@ -124,7 +129,7 @@ class CategorySelectorComponent extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withOpacity(0.1) : Colors.transparent,
+          color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? AppColors.primary : AppColors.borderLight,
@@ -142,7 +147,7 @@ class CategorySelectorComponent extends StatelessWidget {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: _hexToColor(category.couleurHex).withOpacity(0.3),
+                    color: _hexToColor(category.couleurHex).withValues(alpha: 0.3),
                     blurRadius: 4,
                     spreadRadius: 1,
                   ),
@@ -163,13 +168,26 @@ class CategorySelectorComponent extends StatelessWidget {
               ),
             ),
 
-            // Icône de sélection
-            if (isSelected)
-              const Icon(
-                Icons.check_circle,
-                color: AppColors.primary,
-                size: 24,
-              ),
+            // Actions: Modifier / Supprimer
+            Row(
+              children: [
+                // Modifier
+                _ActionIcon(
+                  icon: Icons.edit_outlined,
+                  color: Theme.of(context).colorScheme.primary,
+                  tooltip: 'Modifier',
+                  onTap: () => onEditCategory(category),
+                ),
+                const SizedBox(width: 8),
+                // Supprimer
+                _ActionIcon(
+                  icon: Icons.delete_outline,
+                  color: Colors.red.shade400,
+                  tooltip: 'Supprimer',
+                  onTap: () => onDeleteCategory(category),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -185,3 +203,36 @@ class CategorySelectorComponent extends StatelessWidget {
   }
 }
 
+class _ActionIcon extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  const _ActionIcon({
+    required this.icon,
+    required this.color,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 20, color: color),
+        ),
+      ),
+    );
+  }
+}

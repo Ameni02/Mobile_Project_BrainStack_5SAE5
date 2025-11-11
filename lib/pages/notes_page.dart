@@ -10,6 +10,8 @@ import '../home_page.dart';
 import '../components/add_note_component.dart';
 import '../components/category_selector_component.dart';
 import '../components/add_category_component.dart';
+import '../components/edit_note_component.dart';
+import '../components/edit_category_component.dart';
 
 class NotesPage extends StatefulWidget {
   const NotesPage({super.key});
@@ -29,9 +31,11 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
   bool _showAddNote = false;
   bool _showCategorySelector = false;
   bool _showAddCategory = false;
+  bool _showEditCategory = false; // nouvel overlay édition catégorie
   final TextEditingController _titleCtrl = TextEditingController();
   final TextEditingController _contentCtrl = TextEditingController();
   CategorieNote? _selectedCategory;
+  CategorieNote? _categoryBeingEdited;
   List<CategorieNote> _categories = [];
 
   // Filtrage par catégorie
@@ -40,6 +44,10 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
   // Animation du FAB
   late AnimationController _fabAnimationController;
   late Animation<double> _fabScaleAnimation;
+
+  // Nouveaux états pour l'édition
+  bool _showEditNote = false;
+  Note? _noteBeingEdited;
 
   @override
   void initState() {
@@ -223,9 +231,69 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
     _fabAnimationController.forward();
   }
 
+  // Ouverture édition
+  void _openEditNote(Note note) {
+    setState(() {
+      _noteBeingEdited = note;
+      _titleCtrl.text = note.title;
+      _contentCtrl.text = note.content;
+      _selectedCategory = note.categorie; // préselection
+      _showEditNote = true;
+      _showAddNote = false;
+      _showCategorySelector = false;
+      _showAddCategory = false;
+    });
+    _fabAnimationController.reverse();
+  }
+
+  // Fermeture édition
+  void _closeEditNote() {
+    setState(() {
+      _showEditNote = false;
+      _noteBeingEdited = null;
+      _titleCtrl.clear();
+      _contentCtrl.clear();
+      _selectedCategory = null;
+    });
+    _fabAnimationController.forward();
+  }
+
+  // Sauvegarde édition
+  Future<void> _saveEditedNote() async {
+    if (_noteBeingEdited == null) return;
+    final title = _titleCtrl.text.trim();
+    final content = _contentCtrl.text.trim();
+    if (title.isEmpty && content.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Note vide ignorée.')),
+      );
+      return;
+    }
+    try {
+      await DB.updateNote(
+        _noteBeingEdited!.id,
+        title: title,
+        content: content,
+        categoryId: _selectedCategory?.id,
+      );
+      await _loadNotes();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Note mise à jour')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur lors de la mise à jour.')),
+      );
+    }
+    _closeEditNote();
+  }
+
   void _openAddNote() {
     setState(() {
       _showAddNote = true;
+      _showEditNote = false;
       _showCategorySelector = false;
       _showAddCategory = false;
     });
@@ -241,64 +309,130 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
     _fabAnimationController.forward();
   }
 
+  // Ouvrir sélecteur catégories
   void _openCategorySelector() {
     setState(() {
       _showCategorySelector = true;
       _showAddCategory = false;
+      _showEditCategory = false;
     });
+    _fabAnimationController.reverse();
   }
 
+  // Fermer sélecteur
   void _closeCategorySelector() {
     setState(() {
       _showCategorySelector = false;
     });
+    if (!_showAddNote && !_showEditNote) {
+      _fabAnimationController.forward();
+    }
   }
 
+  // Ouvrir add catégorie
   void _openAddCategory() {
     setState(() {
       _showAddCategory = true;
       _showCategorySelector = false;
+      _showEditCategory = false;
     });
   }
 
+  // Fermer add catégorie retour sélection
+  void _closeAddCategory() {
+    setState(() {
+      _showAddCategory = false;
+      _showCategorySelector = true; // retour au sélecteur
+    });
+  }
+
+  // Après création catégorie
   Future<void> _onCategoryCreated(Map<String, String> data) async {
     final newCat = CategorieNote(
       id: 0,
       nom: data['nom'] ?? 'Nouvelle catégorie',
       couleurHex: data['couleurHex'] ?? '#2196F3',
     );
-
     try {
       final id = await DB.insertCategory(newCat);
       await _loadCategories();
-
-      final createdCategory = _categories.firstWhere(
-            (cat) => cat.id == id,
-        orElse: () => newCat,
-      );
-
+      final created = _categories.firstWhere((c) => c.id == id, orElse: () => newCat);
       setState(() {
-        _selectedCategory = createdCategory;
+        _selectedCategory = created;
         _showAddCategory = false;
-        _showCategorySelector = false;
+        _showCategorySelector = true; // revenir à la liste
       });
-
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Catégorie ajoutée avec succès')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Catégorie ajoutée')));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erreur lors de l\'ajout de la catégorie')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erreur création catégorie')));
+    }
+  }
+
+  // Ouvrir édition catégorie
+  void _openEditCategory(CategorieNote cat) {
+    setState(() {
+      _categoryBeingEdited = cat;
+      _showEditCategory = true;
+      _showCategorySelector = false;
+      _showAddCategory = false;
+    });
+  }
+
+  // Fermer édition catégorie (retour sélecteur)
+  void _closeEditCategory() {
+    setState(() {
+      _showEditCategory = false;
+      _categoryBeingEdited = null;
+      _showCategorySelector = true; // retour liste
+    });
+  }
+
+  // Sauvegarde mise à jour catégorie
+  Future<void> _updateCategory(CategorieNote updated) async {
+    try {
+      await DB.updateCategory(updated);
+      await _loadCategories();
+      setState(() {
+        // si la catégorie éditée était sélectionnée, mettre à jour la référence
+        if (_selectedCategory?.id == updated.id) {
+          _selectedCategory = _categories.firstWhere((c) => c.id == updated.id, orElse: () => updated);
+        }
+        _showEditCategory = false;
+        _categoryBeingEdited = null;
+        _showCategorySelector = true;
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Catégorie mise à jour')));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erreur mise à jour catégorie')));
+    }
+  }
+
+  // Suppression catégorie
+  Future<void> _deleteCategory(CategorieNote cat) async {
+    try {
+      await DB.deleteCategory(cat.id);
+      await _loadCategories();
+      setState(() {
+        if (_selectedCategory?.id == cat.id) {
+          _selectedCategory = null;
+        }
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Catégorie supprimée')));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erreur suppression catégorie')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Déterminer si le FAB doit être visible
-    final bool showFAB = !_showAddNote && !_showCategorySelector && !_showAddCategory;
+    // FAB visible seulement si aucun overlay
+    final bool showFAB = !_showAddNote && !_showCategorySelector && !_showAddCategory && !_showEditNote && !_showEditCategory;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -333,8 +467,10 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
           ),
           // Overlays animés
           _buildAddNoteOverlay(),
+          _buildEditNoteOverlay(),
           _buildCategorySelectorOverlay(),
           _buildAddCategoryOverlay(),
+          _buildEditCategoryOverlay(),
         ],
       ),
       // FAB positionné juste au-dessus de la barre de navigation avec animation
@@ -422,13 +558,12 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
           ),
           const SizedBox(width: 8),
           // Catégories
-          ...(_categories.map((category) {
-            final isSelected = _filterCategory?.id == category.id;
-            return Padding(
+          for (final category in _categories) ...[
+            Padding(
               padding: const EdgeInsets.only(right: 8),
               child: _buildCategoryChip(
                 label: category.nom,
-                isSelected: isSelected,
+                isSelected: _filterCategory?.id == category.id,
                 onTap: () {
                   setState(() {
                     _filterCategory = category;
@@ -437,8 +572,8 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
                 },
                 color: Color(int.parse('0xFF${category.couleurHex.substring(1)}')),
               ),
-            );
-          })),
+            ),
+          ],
         ],
       ),
     );
@@ -456,7 +591,7 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color : color.withOpacity(0.1),
+          color: isSelected ? color : color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: color,
@@ -465,7 +600,7 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
           boxShadow: isSelected
               ? [
             BoxShadow(
-              color: color.withOpacity(0.3),
+              color: color.withValues(alpha: 0.3),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -510,6 +645,7 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
               return NoteGridItem(
                 note: note,
                 onDelete: () => _deleteNote(note),
+                onTap: () => _openEditNote(note),
               );
             },
           );
@@ -523,6 +659,7 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
               return NoteListItem(
                 note: note,
                 onDelete: () => _deleteNote(note),
+                onTap: () => _openEditNote(note),
               );
             },
           );
@@ -587,6 +724,29 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
     );
   }
 
+  Widget _buildEditNoteOverlay() {
+    return AnimatedSlide(
+      offset: _showEditNote ? const Offset(0, 0) : const Offset(0, 1),
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
+      child: _showEditNote && _noteBeingEdited != null
+          ? Align(
+        alignment: Alignment.bottomCenter,
+        child: EditNoteComponent(
+          note: _noteBeingEdited!,
+          titleController: _titleCtrl,
+          contentController: _contentCtrl,
+          selectedCategory: _selectedCategory,
+          onSave: _saveEditedNote,
+          onCancel: _closeEditNote,
+          onSelectCategory: _openCategorySelector,
+        ),
+      )
+          : const SizedBox.shrink(),
+    );
+  }
+
+  // Overlay selector categories avec nouveaux callbacks
   Widget _buildCategorySelectorOverlay() {
     return AnimatedSlide(
       offset: _showCategorySelector ? const Offset(0, 0) : const Offset(1, 0),
@@ -603,15 +763,21 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
               _selectedCategory = category;
               _showCategorySelector = false;
             });
+            if (!_showAddNote && !_showEditNote) {
+              _fabAnimationController.forward();
+            }
           },
           onAddCategory: _openAddCategory,
           onClose: _closeCategorySelector,
+          onEditCategory: _openEditCategory,
+          onDeleteCategory: _deleteCategory,
         ),
       )
           : const SizedBox.shrink(),
     );
   }
 
+  // Overlay ajout catégorie (glisser depuis droite)
   Widget _buildAddCategoryOverlay() {
     return AnimatedSlide(
       offset: _showAddCategory ? const Offset(0, 0) : const Offset(1, 0),
@@ -622,12 +788,29 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
         alignment: Alignment.bottomCenter,
         child: AddCategoryComponent(
           onCategoryCreated: _onCategoryCreated,
-          onClose: () => setState(() => _showAddCategory = false),
+          onClose: _closeAddCategory, // retour liste catégories
+        ),
+      )
+          : const SizedBox.shrink(),
+    );
+  }
+
+  // Overlay édition catégorie (slide bas->haut)
+  Widget _buildEditCategoryOverlay() {
+    return AnimatedSlide(
+      offset: _showEditCategory ? const Offset(0, 0) : const Offset(0, 1),
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
+      child: _showEditCategory && _categoryBeingEdited != null
+          ? Align(
+        alignment: Alignment.bottomCenter,
+        child: EditCategoryComponent(
+          category: _categoryBeingEdited!,
+          onCategoryUpdated: _updateCategory,
+          onClose: _closeEditCategory,
         ),
       )
           : const SizedBox.shrink(),
     );
   }
 }
-
-

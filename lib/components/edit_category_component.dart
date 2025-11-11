@@ -1,43 +1,38 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import '../models/Notes_data.dart';
 
-class AddCategoryComponent extends StatefulWidget {
-  final Function(Map<String, String>) onCategoryCreated;
+class EditCategoryComponent extends StatefulWidget {
+  final CategorieNote category;
+  final Function(CategorieNote) onCategoryUpdated;
   final VoidCallback onClose;
 
-  const AddCategoryComponent({
+  const EditCategoryComponent({
     super.key,
-    required this.onCategoryCreated,
+    required this.category,
+    required this.onCategoryUpdated,
     required this.onClose,
   });
 
   @override
-  State<AddCategoryComponent> createState() => _AddCategoryComponentState();
+  State<EditCategoryComponent> createState() => _EditCategoryComponentState();
 }
 
-class _AddCategoryComponentState extends State<AddCategoryComponent> {
-  final TextEditingController _nameController = TextEditingController();
-  String _selectedColor = '#2196F3'; // Bleu par défaut
+class _EditCategoryComponentState extends State<EditCategoryComponent> {
+  late TextEditingController _nameController;
+  late String _selectedColor;
 
-  // Palette de couleurs élégante
-  final List<String> _colors = [
-    '#2196F3', // Bleu
-    '#4CAF50', // Vert
-    '#FF9800', // Orange
-    '#F44336', // Rouge
-    '#9C27B0', // Violet
-    '#E91E63', // Rose
-    '#00BCD4', // Cyan
-    '#FFEB3B', // Jaune
-    '#795548', // Marron
-    '#607D8B', // Gris bleu
-    '#3F51B5', // Indigo
-    '#8BC34A', // Vert clair
-    '#FF5722', // Orange foncé
-    '#673AB7', // Violet foncé
-    '#009688', // Teal
-    '#FFC107', // Ambre
+  final List<String> _colors = const [
+    '#2196F3', '#4CAF50', '#FF9800', '#F44336', '#9C27B0', '#E91E63', '#00BCD4', '#FFEB3B',
+    '#795548', '#607D8B', '#3F51B5', '#8BC34A', '#FF5722', '#673AB7', '#009688', '#FFC107',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.category.nom);
+    _selectedColor = widget.category.couleurHex;
+  }
 
   @override
   void dispose() {
@@ -45,7 +40,7 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
     super.dispose();
   }
 
-  void _saveCategory() {
+  void _saveUpdates() {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -53,11 +48,8 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
       );
       return;
     }
-
-    widget.onCategoryCreated({
-      'nom': name,
-      'couleurHex': _selectedColor,
-    });
+    final updated = CategorieNote(id: widget.category.id, nom: name, couleurHex: _selectedColor);
+    widget.onCategoryUpdated(updated);
   }
 
   @override
@@ -83,13 +75,13 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back),
+                    icon: const Icon(Icons.close),
                     onPressed: widget.onClose,
                     color: AppColors.textSecondary,
                   ),
                   const SizedBox(width: 8),
                   const Text(
-                    'Ajouter une catégorie',
+                    'Modifier la catégorie',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
@@ -107,7 +99,6 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Champ nom
                     const Text(
                       'Nom de la catégorie',
                       style: TextStyle(
@@ -120,16 +111,10 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                     TextField(
                       controller: _nameController,
                       autofocus: true,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: AppColors.textPrimary,
-                      ),
+                      style: const TextStyle(fontSize: 16, color: AppColors.textPrimary),
                       decoration: InputDecoration(
                         hintText: 'Ex: Travail, Personnel...',
-                        hintStyle: const TextStyle(
-                          fontSize: 16,
-                          color: AppColors.textMuted,
-                        ),
+                        hintStyle: const TextStyle(fontSize: 16, color: AppColors.textMuted),
                         filled: true,
                         fillColor: AppColors.secondary,
                         border: OutlineInputBorder(
@@ -149,7 +134,6 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                     ),
                     const SizedBox(height: 32),
 
-                    // Sélection de couleur
                     const Text(
                       'Couleur',
                       style: TextStyle(
@@ -160,7 +144,6 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Grille de couleurs
                     GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -174,13 +157,8 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                       itemBuilder: (context, index) {
                         final color = _colors[index];
                         final isSelected = color == _selectedColor;
-
                         return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedColor = color;
-                            });
-                          },
+                          onTap: () => setState(() => _selectedColor = color),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             decoration: BoxDecoration(
@@ -194,16 +172,10 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                                     spreadRadius: 2,
                                   ),
                               ],
-                              border: isSelected
-                                  ? Border.all(color: Colors.white, width: 4)
-                                  : null,
+                              border: isSelected ? Border.all(color: Colors.white, width: 4) : null,
                             ),
                             child: isSelected
-                                ? const Icon(
-                                    Icons.check,
-                                    color: Colors.white,
-                                    size: 32,
-                                  )
+                                ? const Icon(Icons.check, color: Colors.white, size: 32)
                                 : null,
                           ),
                         );
@@ -214,7 +186,7 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
               ),
             ),
 
-            // Bouton Enregistrer
+            // Footer bouton sauvegarde
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -230,22 +202,17 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _saveCategory,
+                  onPressed: _saveUpdates,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
                   child: const Text(
-                    'Enregistrer',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    'Enregistrer les modifications',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -258,9 +225,8 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
 
   Color _hexToColor(String hex) {
     hex = hex.replaceAll('#', '');
-    if (hex.length == 6) {
-      hex = 'FF$hex';
-    }
+    if (hex.length == 6) hex = 'FF$hex';
     return Color(int.parse(hex, radix: 16));
   }
 }
+

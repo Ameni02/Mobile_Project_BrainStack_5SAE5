@@ -2,16 +2,20 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../models/Notes_data.dart';
 
-class AddNoteComponent extends StatelessWidget {
+/// Composant plein écran pour modifier une note existante.
+/// Style et structure alignés sur AddNoteComponent, avec CTA bas de page.
+class EditNoteComponent extends StatelessWidget {
+  final Note note;
   final TextEditingController titleController;
   final TextEditingController contentController;
   final CategorieNote? selectedCategory;
-  final VoidCallback onSave;
-  final VoidCallback onCancel;
-  final VoidCallback onSelectCategory;
+  final VoidCallback onSave; // action de mise à jour
+  final VoidCallback onCancel; // fermeture sans enregistrer
+  final VoidCallback onSelectCategory; // ouvrir le sélecteur de catégories
 
-  const AddNoteComponent({
+  const EditNoteComponent({
     super.key,
+    required this.note,
     required this.titleController,
     required this.contentController,
     required this.selectedCategory,
@@ -49,7 +53,7 @@ class AddNoteComponent extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   const Text(
-                    'Nouvelle note',
+                    'Modifier la note',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
@@ -57,22 +61,11 @@ class AddNoteComponent extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
-                  TextButton(
-                    onPressed: onSave,
-                    child: const Text(
-                      'Enregistrer',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
 
-            // Content
+            // Contenu principal
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
@@ -102,7 +95,7 @@ class AddNoteComponent extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
 
-                    // Bouton catégorie
+                    // Zone catégorie (tap pour changer)
                     InkWell(
                       onTap: onSelectCategory,
                       borderRadius: BorderRadius.circular(12),
@@ -185,6 +178,43 @@ class AddNoteComponent extends StatelessWidget {
                 ),
               ),
             ),
+
+            // CTA bas de page
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: onSave,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.primaryForeground,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Enregistrer',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -193,9 +223,7 @@ class AddNoteComponent extends StatelessWidget {
 
   Color _hexToColor(String hex) {
     hex = hex.replaceAll('#', '');
-    if (hex.length == 6) {
-      hex = 'FF$hex';
-    }
+    if (hex.length == 6) hex = 'FF$hex';
     return Color(int.parse(hex, radix: 16));
   }
 }

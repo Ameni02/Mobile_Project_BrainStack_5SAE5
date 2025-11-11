@@ -6,8 +6,10 @@ import '../theme/app_colors.dart';
 class NoteListItem extends StatelessWidget {
   final Note note;
   final VoidCallback? onDelete;
+  // Nouveau: callback lors d'un tap pour ouvrir l'édition
+  final VoidCallback? onTap;
 
-  const NoteListItem({super.key, required this.note, this.onDelete});
+  const NoteListItem({super.key, required this.note, this.onDelete, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +24,7 @@ class NoteListItem extends StatelessWidget {
     }
 
     return InkWell(
-      onTap: () {},
+      onTap: onTap,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 6),
         padding: const EdgeInsets.all(16),
@@ -35,7 +37,7 @@ class NoteListItem extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: borderColor.withOpacity(0.15),
+              color: borderColor.withValues(alpha: 0.15),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -103,10 +105,10 @@ class NoteListItem extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: borderColor.withOpacity(0.1),
+                      color: borderColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: borderColor.withOpacity(0.3),
+                        color: borderColor.withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),
@@ -143,4 +145,3 @@ class NoteListItem extends StatelessWidget {
     }
   }
 }
-
