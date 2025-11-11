@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/profile_data.dart';
 import '../components/add_objective_dialog.dart';
 import '../components/todo_list.dart';
-import '../components/notes_list.dart';
+import 'notes_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -18,7 +18,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -60,7 +60,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               ),
@@ -83,7 +83,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -117,17 +117,33 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
                   ],
                 ),
               ),
-              Tab(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.note, size: 16),
-                    SizedBox(width: 4),
-                    Text("Notes"),
-                  ],
+            ],
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12.0),
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const NotesPage(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.note, size: 16),
+                label: const Text("Notes"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4A90E2),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
-            ],
+            ),
           ),
           SizedBox(
             height: 500,
@@ -136,7 +152,6 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
               children: [
                 _buildObjectivesTab(),
                 _buildTodosTab(),
-                _buildNotesTab(),
               ],
             ),
           ),
@@ -208,7 +223,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
         border: Border.all(color: const Color(0xFFE5E7EB)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -246,7 +261,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF4A90E2).withOpacity(0.1),
+                  color: const Color(0xFF4A90E2).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -318,9 +333,9 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF65C4A3).withOpacity(0.1),
+        color: const Color(0xFF65C4A3).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF65C4A3).withOpacity(0.2)),
+        border: Border.all(color: const Color(0xFF65C4A3).withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
@@ -369,13 +384,6 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
     return const Padding(
       padding: EdgeInsets.all(20),
       child: TodoList(),
-    );
-  }
-
-  Widget _buildNotesTab() {
-    return const Padding(
-      padding: EdgeInsets.all(20),
-      child: NotesList(),
     );
   }
 
