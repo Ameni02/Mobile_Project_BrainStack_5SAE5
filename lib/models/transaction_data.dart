@@ -1,5 +1,7 @@
+// lib/models/transaction_data.dart
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
 import 'dart:convert';
 
 enum TransactionType { expense, revenue }
@@ -13,8 +15,7 @@ class Transaction {
   final IconData icon;
   final String color;
   final TransactionType type;
-  final Map<String, dynamic>? extraFields; // ✅ Ajout
-
+  final Map<String, dynamic>? extraFields;
 
   Transaction({
     required this.id,
@@ -25,95 +26,162 @@ class Transaction {
     required this.icon,
     required this.color,
     required this.type,
-    this.extraFields, // ✅ Ajout
-
+    this.extraFields,
   });
-}
 
-class TransactionData {
-  static final List<Transaction> expenseTransactions = [];
-  static final List<Transaction> revenueTransactions = [];
-
-  // Convertir Transaction en Map
-  static Map<String, dynamic> transactionToMap(Transaction t) {
+  Map<String, dynamic> toMap() {
     return {
-      'id': t.id,
-      'name': t.name,
-      'category': t.category,
-      'date': t.date,
-      'amount': t.amount,
-      'icon': t.icon.codePoint,
-      'color': t.color,
-      'type': t.type.toString(),
-      'extraFields': t.extraFields ?? {}, // ✅ Ajout
-
+      'id': id,
+      'name': name,
+      'category': category,
+      'date': date,
+      'amount': amount,
+      'icon': icon.codePoint,
+      'color': color,
+      'type': type.toString(),
+      'extraFields': jsonEncode(extraFields ?? {}),
     };
   }
 
-  // Convertir Map en Transaction
-  static Transaction mapToTransaction(Map<String, dynamic> map) {
+  static Transaction fromMap(Map<String, dynamic> map) {
     return Transaction(
       id: map['id'],
       name: map['name'],
       category: map['category'],
       date: map['date'],
-      amount: map['amount'],
+      amount: (map['amount'] is int) ? (map['amount'] as int).toDouble() : map['amount'],
       icon: IconData(map['icon'], fontFamily: 'MaterialIcons'),
       color: map['color'],
       type: map['type'] == 'TransactionType.expense'
           ? TransactionType.expense
           : TransactionType.revenue,
-      extraFields: Map<String, dynamic>.from(map['extraFields'] ?? {}), // ✅ Ajout important
-
+      extraFields: (map['extraFields'] != null && (map['extraFields'] as String).isNotEmpty)
+          ? Map<String, dynamic>.from(jsonDecode(map['extraFields']))
+          : {},
     );
   }
+}
 
-  // Sauvegarder les listes dans SharedPreferences
-  static Future<void> saveTransactions() async {
-    final prefs = await SharedPreferences.getInstance();
+class TransactionData {
+  static Database? _db;
+  static final List<Transaction> expenseTransactions = [];
+  static final List<Transaction> revenueTransactions = [];
 
-    final expenseList =
-    expenseTransactions.map((t) => jsonEncode(transactionToMap(t))).toList();
-    final revenueList =
-    revenueTransactions.map((t) => jsonEncode(transactionToMap(t))).toList();
+  // Initialize DB (call once in main)
+  static Future<void> initDb() async {
+    if (_db != null) return;
 
-    await prefs.setStringList('expenseTransactions', expenseList);
-    await prefs.setStringList('revenueTransactions', revenueList);
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, 'transactions.db');
+
+    _db = await openDatabase(
+      path,
+      version: 1,
+      onCreate: (db, version) async {
+        await db.execute('''
+          CREATE TABLE transactions (
+            id INTEGER PRIMARY KEY,
+            name TEXT,
+            category TEXT,
+            date TEXT,
+            amount REAL,
+            icon INTEGER,
+            color TEXT,
+            type TEXT,
+            extraFields TEXT
+          )
+        ''');
+      },
+    );
+
+    await loadTransactions();
   }
 
-  // Charger les listes depuis SharedPreferences
+  // Load all transactions from DB into lists
   static Future<void> loadTransactions() async {
-    final prefs = await SharedPreferences.getInstance();
+    if (_db == null) await initDb();
 
-    final expenseList = prefs.getStringList('expenseTransactions') ?? [];
-    final revenueList = prefs.getStringList('revenueTransactions') ?? [];
+    final List<Map<String, dynamic>> maps =
+    await _db!.query('transactions', orderBy: 'id DESC');
 
     expenseTransactions.clear();
     revenueTransactions.clear();
 
-    expenseTransactions
-        .addAll(expenseList.map((e) => mapToTransaction(jsonDecode(e))));
-    revenueTransactions
-        .addAll(revenueList.map((e) => mapToTransaction(jsonDecode(e))));
+    for (var map in maps) {
+      final t = Transaction.fromMap(map);
+      if (t.type == TransactionType.expense) {
+        expenseTransactions.add(t);
+      } else {
+        revenueTransactions.add(t);
+      }
+    }
 
-    // Ajouter les données statiques si les listes sont vides
     await _addStaticDataIfEmpty();
   }
 
-  // Ajouter une transaction et sauvegarder
+  // Add transaction to DB and in-memory list
   static Future<void> addTransaction(Transaction transaction) async {
+    if (_db == null) await initDb();
+
+    await _db!.insert(
+      'transactions',
+      transaction.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+
     if (transaction.type == TransactionType.expense) {
-      expenseTransactions.add(transaction);
+      expenseTransactions.insert(0, transaction);
     } else {
-      revenueTransactions.add(transaction);
+      revenueTransactions.insert(0, transaction);
     }
-    await saveTransactions();
   }
 
-  // Ajouter des données statiques
+  // Update transaction
+  static Future<void> updateTransaction(Transaction updatedTransaction) async {
+    if (_db == null) await initDb();
+
+    await _db!.update(
+      'transactions',
+      updatedTransaction.toMap(),
+      where: 'id = ?',
+      whereArgs: [updatedTransaction.id],
+    );
+
+    if (updatedTransaction.type == TransactionType.expense) {
+      final index = expenseTransactions.indexWhere((t) => t.id == updatedTransaction.id);
+      if (index != -1) expenseTransactions[index] = updatedTransaction;
+    } else {
+      final index = revenueTransactions.indexWhere((t) => t.id == updatedTransaction.id);
+      if (index != -1) revenueTransactions[index] = updatedTransaction;
+    }
+  }
+
+  // Delete by id
+  static Future<void> deleteTransaction(int id) async {
+    if (_db == null) await initDb();
+
+    await _db!.delete(
+      'transactions',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+
+    expenseTransactions.removeWhere((t) => t.id == id);
+    revenueTransactions.removeWhere((t) => t.id == id);
+  }
+
+  // Delete by object (utile pour ton UI)
+  static Future<void> deleteTransactionObject(Transaction transaction) async {
+    await deleteTransaction(transaction.id);
+  }
+
+  // Add static data if DB is empty
   static Future<void> _addStaticDataIfEmpty() async {
-    if (expenseTransactions.isEmpty && revenueTransactions.isEmpty) {
-      expenseTransactions.addAll([
+    if (_db == null) await initDb();
+
+    final count = Sqflite.firstIntValue(await _db!.rawQuery('SELECT COUNT(*) FROM transactions')) ?? 0;
+    if (count == 0) {
+      final staticTransactions = [
         Transaction(
           id: 1,
           name: "Amazon Purchase",
@@ -144,9 +212,6 @@ class TransactionData {
           color: "#7ED321",
           type: TransactionType.expense,
         ),
-      ]);
-
-      revenueTransactions.addAll([
         Transaction(
           id: 4,
           name: "Salary Deposit",
@@ -167,68 +232,29 @@ class TransactionData {
           color: "#4A90E2",
           type: TransactionType.revenue,
         ),
-      ]);
+      ];
 
-      await saveTransactions();
-    }
-  }
-
-  // Supprimer une transaction par ID et sauvegarder
-  static Future<void> deleteTransaction(int id, TransactionType type) async {
-    if (type == TransactionType.expense) {
-      expenseTransactions.removeWhere((t) => t.id == id);
+      for (var t in staticTransactions) {
+        await addTransaction(t);
+      }
     } else {
-      revenueTransactions.removeWhere((t) => t.id == id);
+      // nothing to do
     }
-    await saveTransactions();
   }
 
-  static Future<void> deleteTransactionObject(Transaction transaction) async {
-    if (transaction.type == TransactionType.expense) {
-      expenseTransactions.remove(transaction);
-    } else {
-      revenueTransactions.remove(transaction);
-    }
-    await saveTransactions();
-  }
-
-
-
-  // Getter pour toutes les transactions
+  // Getters
   static List<Transaction> get allTransactions {
     final all = [...revenueTransactions, ...expenseTransactions];
     all.sort((a, b) => b.id.compareTo(a.id));
     return all;
   }
 
-  // Mettre à jour une transaction existante
-  static Future<void> updateTransaction(Transaction updatedTransaction) async {
-    if (updatedTransaction.type == TransactionType.revenue) {
-      final index = revenueTransactions.indexWhere((t) => t.id == updatedTransaction.id);
-      if (index != -1) {
-        revenueTransactions[index] = updatedTransaction;
-      }
-    } else if (updatedTransaction.type == TransactionType.expense) {
-      final index = expenseTransactions.indexWhere((t) => t.id == updatedTransaction.id);
-      if (index != -1) {
-        expenseTransactions[index] = updatedTransaction;
-      }
-    }
-
-    // Sauvegarde dans SharedPreferences
-    await saveTransactions();
-  }
-
-
-  // Totaux
   static double get totalExpenses =>
       expenseTransactions.fold(0, (sum, t) => sum + t.amount);
 
   static double get totalRevenue =>
       revenueTransactions.fold(0, (sum, t) => sum + t.amount);
 }
-
-
 
 /*class TransactionData {
   static final List<Transaction> expenseTransactions = [
