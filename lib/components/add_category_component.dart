@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import '../services/colormind_service.dart';
 
 class AddCategoryComponent extends StatefulWidget {
   final Function(Map<String, String>) onCategoryCreated;
@@ -17,32 +18,58 @@ class AddCategoryComponent extends StatefulWidget {
 
 class _AddCategoryComponentState extends State<AddCategoryComponent> {
   final TextEditingController _nameController = TextEditingController();
-  String _selectedColor = '#2196F3'; // Bleu par défaut
+  Color? _selectedColor; // Couleur choisie
+  List<Color> _suggestedColors = [];
+  bool _isLoadingColors = false;
+  DateTime _lastInputTime = DateTime.fromMillisecondsSinceEpoch(0);
 
-  // Palette de couleurs élégante
-  final List<String> _colors = [
-    '#2196F3', // Bleu
-    '#4CAF50', // Vert
-    '#FF9800', // Orange
-    '#F44336', // Rouge
-    '#9C27B0', // Violet
-    '#E91E63', // Rose
-    '#00BCD4', // Cyan
-    '#FFEB3B', // Jaune
-    '#795548', // Marron
-    '#607D8B', // Gris bleu
-    '#3F51B5', // Indigo
-    '#8BC34A', // Vert clair
-    '#FF5722', // Orange foncé
-    '#673AB7', // Violet foncé
-    '#009688', // Teal
-    '#FFC107', // Ambre
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _nameController.addListener(_onNameChanged);
+  }
 
   @override
   void dispose() {
+    _nameController.removeListener(_onNameChanged);
     _nameController.dispose();
     super.dispose();
+  }
+
+  void _onNameChanged() {
+    final now = DateTime.now();
+    // Debounce ~500ms
+    if (now.difference(_lastInputTime).inMilliseconds < 500) return;
+    _lastInputTime = now;
+    if (_nameController.text.trim().isEmpty) return;
+    _fetchPalette();
+  }
+
+  Future<void> _fetchPalette() async {
+    setState(() {
+      _isLoadingColors = true;
+    });
+    try {
+      final palette = await ColormindService.getPalette();
+      if (!mounted) return;
+      setState(() {
+        _suggestedColors = palette;
+        // Pré-sélectionner la première si aucune sélection
+        _selectedColor ??= palette.isNotEmpty ? palette.first : null;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Impossible de récupérer les couleurs. Réessayez.')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingColors = false;
+        });
+      }
+    }
   }
 
   void _saveCategory() {
@@ -53,12 +80,19 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
       );
       return;
     }
-
+    if (_selectedColor == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Veuillez choisir une couleur')),
+      );
+      return;
+    }
     widget.onCategoryCreated({
       'nom': name,
-      'couleurHex': _selectedColor,
+      'couleurHex': _colorToHex(_selectedColor!),
     });
   }
+
+  String _colorToHex(Color c) => '#${c.value.toRadixString(16).substring(2).toUpperCase()}';
 
   @override
   Widget build(BuildContext context) {
@@ -96,6 +130,18 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                       color: AppColors.textPrimary,
                     ),
                   ),
+                  const Spacer(),
+                  IconButton(
+                    tooltip: 'Générer des couleurs',
+                    onPressed: _isLoadingColors ? null : _fetchPalette,
+                    icon: _isLoadingColors
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.palette_outlined),
+                  )
                 ],
               ),
             ),
@@ -151,7 +197,7 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
 
                     // Sélection de couleur
                     const Text(
-                      'Couleur',
+                      'Couleurs suggérées',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -160,54 +206,63 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Grille de couleurs
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 4,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 1,
+                    if (_suggestedColors.isEmpty && !_isLoadingColors)
+                      const Text(
+                        'Saisissez un nom ou appuyez sur la palette pour générer des couleurs.',
+                        style: TextStyle(color: AppColors.textMuted),
                       ),
-                      itemCount: _colors.length,
-                      itemBuilder: (context, index) {
-                        final color = _colors[index];
-                        final isSelected = color == _selectedColor;
 
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedColor = color;
-                            });
-                          },
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            decoration: BoxDecoration(
-                              color: _hexToColor(color),
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                if (isSelected)
-                                  BoxShadow(
-                                    color: _hexToColor(color).withValues(alpha: 0.5),
-                                    blurRadius: 12,
-                                    spreadRadius: 2,
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: _isLoadingColors
+                          ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(16.0),
+                                child: CircularProgressIndicator(),
+                              ),
+                            )
+                          : GridView.builder(
+                              key: ValueKey(_suggestedColors.length),
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 5,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                                childAspectRatio: 1,
+                              ),
+                              itemCount: _suggestedColors.length,
+                              itemBuilder: (context, index) {
+                                final color = _suggestedColors[index];
+                                final isSelected = color == _selectedColor;
+                                return GestureDetector(
+                                  onTap: () {
+                                    setState(() => _selectedColor = color);
+                                  },
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    decoration: BoxDecoration(
+                                      color: color,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        if (isSelected)
+                                          BoxShadow(
+                                            color: color.withValues(alpha: 0.5),
+                                            blurRadius: 12,
+                                            spreadRadius: 2,
+                                          ),
+                                      ],
+                                      border: isSelected
+                                          ? Border.all(color: Colors.white, width: 4)
+                                          : null,
+                                    ),
+                                    child: isSelected
+                                        ? const Icon(Icons.check, color: Colors.white, size: 32)
+                                        : null,
                                   ),
-                              ],
-                              border: isSelected
-                                  ? Border.all(color: Colors.white, width: 4)
-                                  : null,
+                                );
+                              },
                             ),
-                            child: isSelected
-                                ? const Icon(
-                                    Icons.check,
-                                    color: Colors.white,
-                                    size: 32,
-                                  )
-                                : null,
-                          ),
-                        );
-                      },
                     ),
                   ],
                 ),
@@ -254,13 +309,5 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
         ),
       ),
     );
-  }
-
-  Color _hexToColor(String hex) {
-    hex = hex.replaceAll('#', '');
-    if (hex.length == 6) {
-      hex = 'FF$hex';
-    }
-    return Color(int.parse(hex, radix: 16));
   }
 }
