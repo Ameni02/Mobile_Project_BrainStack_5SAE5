@@ -12,6 +12,7 @@ import '../components/category_selector_component.dart';
 import '../components/add_category_component.dart';
 import '../components/edit_note_component.dart';
 import '../components/edit_category_component.dart';
+import '../components/confirm_delete_sheet.dart';
 
 class NotesPage extends StatefulWidget {
   const NotesPage({super.key});
@@ -200,7 +201,7 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
       await _loadNotes();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Note supprimée')),
+        const SnackBar(content: Text('Note supprimée avec succès')),
       );
     } catch (_) {
       if (!mounted) return;
@@ -422,7 +423,7 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
         }
       });
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Catégorie supprimée')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Catégorie supprimée avec succès')));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erreur suppression catégorie')));
@@ -445,6 +446,40 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erreur lors du pin.')));
     }
+  }
+
+  Future<void> _confirmDeleteNote(Note note) async {
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => ConfirmDeleteSheet(
+        title: 'Supprimer cette note ?',
+        message: 'Cette action est irréversible.',
+        onConfirm: () async {
+          await _deleteNote(note);
+          if (!mounted) return;
+        },
+        icon: Icons.delete_outline,
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteCategory(CategorieNote cat) async {
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => ConfirmDeleteSheet(
+        title: 'Supprimer cette catégorie ?',
+        message: 'Cette action est irréversible.',
+        onConfirm: () async {
+          await _deleteCategory(cat);
+          if (!mounted) return;
+        },
+        icon: Icons.delete_outline,
+      ),
+    );
   }
 
   @override
@@ -662,7 +697,7 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
               final note = _filteredNotes[index];
               return NoteGridItem(
                 note: note,
-                onDelete: () => _deleteNote(note),
+                onDelete: () => _confirmDeleteNote(note),
                 onTap: () => _openEditNote(note),
                 onTogglePinned: () => _togglePinned(note),
               );
@@ -677,7 +712,7 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
               final note = _filteredNotes[index];
               return NoteListItem(
                 note: note,
-                onDelete: () => _deleteNote(note),
+                onDelete: () => _confirmDeleteNote(note),
                 onTap: () => _openEditNote(note),
                 onTogglePinned: () => _togglePinned(note),
               );
@@ -790,7 +825,7 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
           onAddCategory: _openAddCategory,
           onClose: _closeCategorySelector,
           onEditCategory: _openEditCategory,
-          onDeleteCategory: _deleteCategory,
+          onDeleteCategory: (cat) => _confirmDeleteCategory(cat),
         ),
       )
           : const SizedBox.shrink(),
