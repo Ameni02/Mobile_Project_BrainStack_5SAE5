@@ -46,8 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
           NavigationDestination(icon: Icon(Icons.analytics_outlined), label: 'Analytics'),
           NavigationDestination(icon: Icon(Icons.attach_money_outlined), label: 'Transactions'),
           NavigationDestination(icon: Icon(Icons.person_outline), label: 'Profile'),
-          NavigationDestination(icon: Icon(Icons.article_outlined), label: 'News'),
-          NavigationDestination(icon: Icon(Icons.currency_bitcoin_outlined), label: 'Crypto'),
+
         ],
       ),
     );
