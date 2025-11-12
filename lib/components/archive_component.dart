@@ -7,7 +7,6 @@ import 'notes_list_item.dart';
 import 'confirm_delete_sheet.dart';
 import 'notes_sort_buttons.dart';
 import 'edit_note_component.dart';
-import 'add_note_component.dart';
 import 'category_selector_component.dart';
 import 'add_category_component.dart';
 import 'edit_category_component.dart';

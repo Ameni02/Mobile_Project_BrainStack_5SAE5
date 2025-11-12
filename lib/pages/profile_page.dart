@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/profile_data.dart';
-import '../components/add_objective_dialog.dart';
 import '../components/todo_list.dart';
 import 'notes_page.dart';
 

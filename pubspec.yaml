@@ -16,6 +16,8 @@ dependencies:
   fl_chart: ^0.69.0
   intl: ^0.19.0
   http: ^1.2.0
+  flutter_launcher_icons: ^0.14.4
+
 
 dev_dependencies:
   flutter_test:
@@ -24,3 +26,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/app_icon.png"
