@@ -44,7 +44,10 @@ class AddNoteComponent extends StatelessWidget {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.close),
-                    onPressed: onCancel,
+                    onPressed: () {
+                      FocusScope.of(context).unfocus();
+                      onCancel();
+                    },
                     color: AppColors.textSecondary,
                   ),
                   const SizedBox(width: 8),
@@ -94,7 +97,10 @@ class AddNoteComponent extends StatelessWidget {
 
                     // Bouton catégorie
                     InkWell(
-                      onTap: onSelectCategory,
+                      onTap: () {
+                        FocusScope.of(context).unfocus();
+                        onSelectCategory();
+                      },
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -192,7 +198,10 @@ class AddNoteComponent extends StatelessWidget {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: onSave,
+                  onPressed: () {
+                    FocusScope.of(context).unfocus();
+                    onSave();
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: AppColors.primaryForeground,

@@ -73,6 +73,7 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
   }
 
   void _saveCategory() {
+    FocusScope.of(context).unfocus(); // fermer le clavier avant sauvegarde
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -92,7 +93,10 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
     });
   }
 
-  String _colorToHex(Color c) => '#${c.value.toRadixString(16).substring(2).toUpperCase()}';
+  String _colorToHex(Color c) {
+    String to2(int v) => v.toRadixString(16).padLeft(2, '0').toUpperCase();
+    return '#${to2(c.red)}${to2(c.green)}${to2(c.blue)}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -118,7 +122,10 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.arrow_back),
-                    onPressed: widget.onClose,
+                    onPressed: () {
+                      FocusScope.of(context).unfocus(); // fermer le clavier avant retour
+                      widget.onClose();
+                    },
                     color: AppColors.textSecondary,
                   ),
                   const SizedBox(width: 8),

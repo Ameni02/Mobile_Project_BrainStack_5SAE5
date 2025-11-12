@@ -66,6 +66,7 @@ class _EditCategoryComponentState extends State<EditCategoryComponent> {
   }
 
   void _saveUpdates() {
+    FocusScope.of(context).unfocus(); // fermer le clavier avant sauvegarde
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -87,7 +88,10 @@ class _EditCategoryComponentState extends State<EditCategoryComponent> {
     widget.onCategoryUpdated(updated);
   }
 
-  String _colorToHex(Color c) => '#${c.value.toRadixString(16).substring(2).toUpperCase()}';
+  String _colorToHex(Color c) {
+    String to2(int v) => v.toRadixString(16).padLeft(2, '0').toUpperCase();
+    return '#${to2(c.red)}${to2(c.green)}${to2(c.blue)}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -104,7 +108,14 @@ class _EditCategoryComponentState extends State<EditCategoryComponent> {
               ]),
               child: Row(
                 children: [
-                  IconButton(icon: const Icon(Icons.close), onPressed: widget.onClose, color: AppColors.textSecondary),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () {
+                      FocusScope.of(context).unfocus(); // fermer le clavier avant retour
+                      widget.onClose();
+                    },
+                    color: AppColors.textSecondary,
+                  ),
                   const SizedBox(width: 8),
                   const Text('Modifier la catégorie', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
                   const Spacer(),
