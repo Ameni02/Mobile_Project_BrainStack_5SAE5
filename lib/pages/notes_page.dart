@@ -511,10 +511,9 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
     final changed = await Navigator.of(context).push<bool>(
       PageRouteBuilder(
         pageBuilder: (_, __, ___) => const ArchiveComponent(),
-        transitionsBuilder: (_, animation, __, child) => SlideTransition(
-          position: Tween(begin: const Offset(1, 0), end: Offset.zero).animate(CurvedAnimation(parent: animation, curve: Curves.easeInOut)),
-          child: child,
-        ),
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+        transitionsBuilder: (_, __, ___, child) => child,
       ),
     );
     if (changed == true) {
