@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../services/secure_storage_service.dart';
+import 'package:flutter/services.dart';
 import '../../models/goal_model.dart';
+import '../../services/huggingface_service.dart';
 
 class AddGoalDialog extends StatefulWidget {
   final bool isOpen;
@@ -24,6 +27,8 @@ class _AddGoalDialogState extends State<AddGoalDialog> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _targetController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+
+  bool _isGeneratingSmartGoal = false;
 
   String _selectedCategory = 'Electronics';
   String _selectedPriority = 'medium';
@@ -239,14 +244,125 @@ class _AddGoalDialogState extends State<AddGoalDialog> {
                       const SizedBox(height: 16),
 
                       // Description
-                      TextFormField(
-                        controller: _descriptionController,
-                        decoration: const InputDecoration(
-                          labelText: "Description (optional)",
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.description),
-                        ),
-                        maxLines: 3,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _descriptionController,
+                              decoration: const InputDecoration(
+                                labelText: "Description (optional)",
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(Icons.description),
+                              ),
+                              maxLines: 3,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          SizedBox(
+                            height: 48,
+                            child: _isGeneratingSmartGoal
+                                ? const Padding(
+                                    padding: EdgeInsets.all(12.0),
+                                    child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                                  )
+                                : IconButton(
+                                    tooltip: 'Reformuler en SMART',
+                                    icon: const Icon(Icons.auto_fix_high),
+                                    onPressed: () async {
+                                      // Use title if description empty
+                                      final input = _descriptionController.text.trim().isEmpty ? _titleController.text.trim() : _descriptionController.text.trim();
+                                      if (input.isEmpty) {
+                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a title or description first')));
+                                        return;
+                                      }
+
+                                      setState(() => _isGeneratingSmartGoal = true);
+                                      try {
+                                        final storage = SecureStorageService();
+                                        String? apiKey = await storage.readHfKey();
+                                        if (apiKey == null || apiKey.isEmpty) {
+                                          // Ask for API key
+                                          final keys = await showDialog<String?>(
+                                            context: context,
+                                            builder: (ctx) {
+                                              final kCtrl = TextEditingController();
+                                              return AlertDialog(
+                                                title: const Text('Hugging Face API Key'),
+                                                content: Column(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    const Text('Enter your Hugging Face Inference API key (hf_...)'),
+                                                    TextField(controller: kCtrl, decoration: const InputDecoration(labelText: 'API Key')),
+                                                  ],
+                                                ),
+                                                actions: [
+                                                  TextButton(onPressed: () => Navigator.of(ctx).pop(null), child: const Text('Cancel')),
+                                                  ElevatedButton(onPressed: () => Navigator.of(ctx).pop(kCtrl.text), child: const Text('Save')),
+                                                ],
+                                              );
+                                            },
+                                          );
+                                          if (keys != null && keys.isNotEmpty) {
+                                            apiKey = keys;
+                                            await storage.writeHfKey(apiKey);
+                                          }
+                                        }
+
+                                        if (apiKey == null || apiKey.isEmpty) {
+                                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Hugging Face API key not provided.')));
+                                        } else {
+                                          final svc = HuggingFaceService();
+                                          svc.setApiKey(apiKey);
+                                          final generated = await svc.generateSmartGoal(input);
+                                          svc.dispose();
+                                          if (generated.isNotEmpty) {
+                                            // Post-process: keep single-line and ensure prefix
+                                            var out = generated.trim().replaceAll('\n', ' ');
+                                            if (!out.startsWith('SMART Goal')) {
+                                              out = 'SMART Goal: ' + out;
+                                            }
+                                            _descriptionController.text = out;
+                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('SMART goal generated.')));
+                                          } else {
+                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No output from model')));
+                                          }
+                                        }
+                                      } catch (e, st) {
+                                        // Log to console for debugging
+                                        // ignore: avoid_print
+                                        print('Hugging Face generation error: $e');
+                                        // ignore: avoid_print
+                                        print(st);
+
+                                        // Prepare a short snippet of the stack trace (avoid huge dialogs)
+                                        final stStr = st.toString();
+                                        final snippet = stStr.length > 1000 ? stStr.substring(0, 1000) : stStr;
+
+                                        // Show a dialog with the full error so user/dev can inspect it
+                                        await showDialog<void>(
+                                          context: context,
+                                          builder: (ctx) {
+                                            return AlertDialog(
+                                              title: const Text('Generation failed'),
+                                              content: SingleChildScrollView(
+                                                child: Text('$e\n\n$snippet'),
+                                              ),
+                                              actions: [
+                                                TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('OK')),
+                                              ],
+                                            );
+                                          },
+                                        );
+
+                                        // also show a brief snackbar
+                                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Generation failed: ${e.toString()}')));
+                                      } finally {
+                                        setState(() => _isGeneratingSmartGoal = false);
+                                      }
+                                    },
+                                  ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 24),
 
