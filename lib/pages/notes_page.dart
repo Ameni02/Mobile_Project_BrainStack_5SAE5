@@ -13,6 +13,7 @@ import '../components/add_category_component.dart';
 import '../components/edit_note_component.dart';
 import '../components/edit_category_component.dart';
 import '../components/confirm_delete_sheet.dart';
+import '../components/archive_component.dart'; // nouveau composant
 
 class NotesPage extends StatefulWidget {
   const NotesPage({super.key});
@@ -80,10 +81,12 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
     try {
       final rows = await DB.getNotes();
       _notes = rows.map((m) => _mapRowToNote(m)).toList();
+      // _applySort agit sur toutes les notes mais l'affichage final exclut les archivées.
       _applySort();
       _applyFilter();
     } catch (_) {
       _notes = [];
+      _filteredNotes = [];
     }
     setState(() => _isLoading = false);
   }
@@ -180,10 +183,12 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
   }
 
   void _applyFilter() {
+    // Toujours exclure les notes archivées de la vue principale
+    final activeNotes = _notes.where((n) => !n.isArchived);
     if (_filterCategory == null) {
-      _filteredNotes = List.from(_notes);
+      _filteredNotes = activeNotes.toList();
     } else {
-      _filteredNotes = _notes.where((note) => note.categorie?.id == _filterCategory!.id).toList();
+      _filteredNotes = activeNotes.where((note) => note.categorie?.id == _filterCategory!.id).toList();
     }
   }
 
@@ -448,6 +453,26 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
     }
   }
 
+  Future<void> _toggleArchived(Note note) async {
+    final newArchived = !note.isArchived;
+    try {
+      await DB.updateNote(note.id, isArchived: newArchived);
+      setState(() {
+        note.isArchived = newArchived;
+        // Retirer immédiatement si elle vient d'être archivée
+        _applyFilter();
+      });
+      await _loadNotes();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(newArchived ? 'Note archivée avec succès' : 'Note restaurée')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erreur archivage')));
+    }
+  }
+
   Future<void> _confirmDeleteNote(Note note) async {
     await showModalBottomSheet(
       context: context,
@@ -482,6 +507,21 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
     );
   }
 
+  void _openArchivePage() async {
+    final changed = await Navigator.of(context).push<bool>(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => const ArchiveComponent(),
+        transitionsBuilder: (_, animation, __, child) => SlideTransition(
+          position: Tween(begin: const Offset(1, 0), end: Offset.zero).animate(CurvedAnimation(parent: animation, curve: Curves.easeInOut)),
+          child: child,
+        ),
+      ),
+    );
+    if (changed == true) {
+      await _loadNotes(); // recharger pour inclure restaurations
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // FAB visible seulement si aucun overlay
@@ -502,11 +542,19 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
                 // Boutons de tri et d'affichage
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: NotesSortAndViewBar(
-                    currentSort: _sortType,
-                    isGrid: _isGrid,
-                    onSortChanged: _onChangeSort,
-                    onToggleView: () => setState(() => _isGrid = !_isGrid),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: NotesSortAndViewBar(
+                          currentSort: _sortType,
+                          isGrid: _isGrid,
+                          onSortChanged: _onChangeSort,
+                          onToggleView: () => setState(() => _isGrid = !_isGrid),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      _ArchiveButton(onOpen: _openArchivePage),
+                    ],
                   ),
                 ),
                 // Filtrage par catégories
@@ -700,6 +748,7 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
                 onDelete: () => _confirmDeleteNote(note),
                 onTap: () => _openEditNote(note),
                 onTogglePinned: () => _togglePinned(note),
+                onArchive: () => _toggleArchived(note),
               );
             },
           );
@@ -715,6 +764,7 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
                 onDelete: () => _confirmDeleteNote(note),
                 onTap: () => _openEditNote(note),
                 onTogglePinned: () => _togglePinned(note),
+                onArchive: () => _toggleArchived(note),
               );
             },
           );
@@ -866,6 +916,43 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
         ),
       )
           : const SizedBox.shrink(),
+    );
+  }
+}
+
+class _ArchiveButton extends StatelessWidget {
+  final VoidCallback onOpen;
+  const _ArchiveButton({required this.onOpen});
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onOpen,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.borderLight),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.shadowLight,
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.archive_outlined, size: 18, color: AppColors.textSecondary),
+            SizedBox(width: 6),
+            Text(
+              'Archives',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

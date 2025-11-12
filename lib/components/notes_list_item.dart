@@ -6,11 +6,11 @@ import '../theme/app_colors.dart';
 class NoteListItem extends StatelessWidget {
   final Note note;
   final VoidCallback? onDelete;
-  // Nouveau: callback lors d'un tap pour ouvrir l'édition
   final VoidCallback? onTap;
-  final VoidCallback? onTogglePinned; // nouveau
+  final VoidCallback? onTogglePinned;
+  final VoidCallback? onArchive; // nouveau
 
-  const NoteListItem({super.key, required this.note, this.onDelete, this.onTap, this.onTogglePinned});
+  const NoteListItem({super.key, required this.note, this.onDelete, this.onTap, this.onTogglePinned, this.onArchive});
 
   @override
   Widget build(BuildContext context) {
@@ -74,12 +74,12 @@ class NoteListItem extends StatelessWidget {
                     padding: EdgeInsets.only(left: 4),
                     child: Icon(Icons.push_pin, size: 16, color: Colors.amber),
                   ),
-                if (onDelete != null)
+                if (true)
                   GestureDetector(
-                    onTap: onDelete,
+                    onTap: () => _openMenu(context),
                     child: const Padding(
                       padding: EdgeInsets.only(left: 8),
-                      child: Icon(Icons.close, size: 18, color: AppColors.textSecondary),
+                      child: Icon(Icons.more_vert, size: 18, color: AppColors.textSecondary),
                     ),
                   ),
               ],
@@ -134,6 +134,76 @@ class NoteListItem extends StatelessWidget {
       rel = '${ref.day}/${ref.month}/${ref.year}';
     }
     return (isModified ? 'Modifiée il y a ' : 'Ajoutée il y a ') + rel;
+  }
+
+  void _openMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ActionsSheet(
+        isArchived: note.isArchived,
+        onArchiveToggle: onArchive,
+        onDelete: onDelete,
+      ),
+    );
+  }
+}
+
+class _ActionsSheet extends StatelessWidget {
+  final bool isArchived;
+  final VoidCallback? onArchiveToggle;
+  final VoidCallback? onDelete;
+  const _ActionsSheet({required this.isArchived, this.onArchiveToggle, this.onDelete});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 40, height: 5, margin: const EdgeInsets.only(bottom: 8), decoration: BoxDecoration(color: AppColors.borderLight, borderRadius: BorderRadius.circular(4))),
+            _ActionTile(
+              icon: isArchived ? Icons.unarchive_outlined : Icons.archive_outlined,
+              label: isArchived ? 'Restaurer' : 'Archiver',
+              onTap: () {
+                Navigator.pop(context);
+                onArchiveToggle?.call();
+              },
+            ),
+            _ActionTile(
+              icon: Icons.delete_outline,
+              label: 'Supprimer',
+              onTap: () {
+                Navigator.pop(context);
+                onDelete?.call();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ActionTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  const _ActionTile({required this.icon, required this.label, this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(icon, color: AppColors.textSecondary),
+      title: Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+      onTap: onTap,
+      splashColor: AppColors.secondary,
+    );
   }
 }
 
