@@ -16,20 +16,24 @@ class DB {
           'CREATE TABLE notes(id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, content TEXT, createdAt TEXT, updatedAt TEXT, categoryId INTEGER, isImportant INTEGER, isArchived INTEGER, isPinned INTEGER)',
         );
         await db.execute(
-          'CREATE TABLE categories(id INTEGER PRIMARY KEY AUTOINCREMENT, nom TEXT, couleurHex TEXT)',
+          'CREATE TABLE categoriesNote(id INTEGER PRIMARY KEY AUTOINCREMENT, nom TEXT, couleurHex TEXT)',
         );
-        await db.insert('categories', {'nom': 'Personnel', 'couleurHex': '#2196F3'});
-        await db.insert('categories', {'nom': 'Travail', 'couleurHex': '#FF9800'});
-        await db.insert('categories', {'nom': 'Important', 'couleurHex': '#F44336'});
+        await db.insert('categoriesNote', {'nom': 'Personnel', 'couleurHex': '#2196F3'});
+        await db.insert('categoriesNote', {'nom': 'Travail', 'couleurHex': '#FF9800'});
+        await db.insert('categoriesNote', {'nom': 'Important', 'couleurHex': '#F44336'});
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
-          await db.execute(
-            'CREATE TABLE IF NOT EXISTS categories(id INTEGER PRIMARY KEY AUTOINCREMENT, nom TEXT, couleurHex TEXT)',
-          );
-          await db.insert('categories', {'nom': 'Personnel', 'couleurHex': '#2196F3'});
-          await db.insert('categories', {'nom': 'Travail', 'couleurHex': '#FF9800'});
-          await db.insert('categories', {'nom': 'Important', 'couleurHex': '#F44336'});
+            await db.execute(
+              'CREATE TABLE IF NOT EXISTS categoriesNote(id INTEGER PRIMARY KEY AUTOINCREMENT, nom TEXT, couleurHex TEXT)',
+            );
+            // Peupler si vide
+            final count = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM categoriesNote')) ?? 0;
+            if (count == 0) {
+              await db.insert('categoriesNote', {'nom': 'Personnel', 'couleurHex': '#2196F3'});
+              await db.insert('categoriesNote', {'nom': 'Travail', 'couleurHex': '#FF9800'});
+              await db.insert('categoriesNote', {'nom': 'Important', 'couleurHex': '#F44336'});
+            }
         }
       },
     );
@@ -59,7 +63,6 @@ class DB {
 
   static Future<List<Map<String, dynamic>>> getNotes() async {
     final database = await db;
-    // Tri: épinglées d'abord (isPinned DESC), puis par updatedAt DESC (fallback createdAt), puis createdAt DESC pour stabiliser
     final notes = await database.query(
       'notes',
       orderBy: 'isPinned DESC, COALESCE(updatedAt, createdAt) DESC, createdAt DESC',
@@ -70,7 +73,7 @@ class DB {
       Map<String, dynamic> noteData = Map.from(note);
       if (note['categoryId'] != null) {
         final categories = await database.query(
-          'categories',
+          'categoriesNote',
           where: 'id = ?',
           whereArgs: [note['categoryId']],
         );
@@ -126,7 +129,7 @@ class DB {
   static Future<int> insertCategory(CategorieNote category) async {
     final database = await db;
     return await database.insert(
-      'categories',
+      'categoriesNote',
       {
         'nom': category.nom,
         'couleurHex': category.couleurHex,
@@ -137,8 +140,7 @@ class DB {
 
   static Future<List<CategorieNote>> getAllCategories() async {
     final database = await db;
-    final List<Map<String, dynamic>> maps = await database.query('categories', orderBy: 'nom ASC');
-
+    final List<Map<String, dynamic>> maps = await database.query('categoriesNote', orderBy: 'nom ASC');
     return List.generate(maps.length, (i) {
       return CategorieNote(
         id: maps[i]['id'],
@@ -156,9 +158,8 @@ class DB {
       where: 'categoryId = ?',
       whereArgs: [id],
     );
-    // Supprimer la catégorie
     await database.delete(
-      'categories',
+      'categoriesNote',
       where: 'id = ?',
       whereArgs: [id],
     );
@@ -167,7 +168,7 @@ class DB {
   static Future<void> updateCategory(CategorieNote category) async {
     final database = await db;
     await database.update(
-      'categories',
+      'categoriesNote',
       {
         'nom': category.nom,
         'couleurHex': category.couleurHex,
