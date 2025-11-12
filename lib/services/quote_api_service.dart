@@ -47,9 +47,9 @@ class QuoteApiService {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString(_quoteStorageKey, q);
         } catch (_) {}
-        if (q.isNotEmpty) return q;
+        return q; // return successful provider result
       } catch (e) {
-        // ignore provider error and try next
+        // ignore and try next
       }
     }
 
@@ -60,7 +60,9 @@ class QuoteApiService {
       if (cached != null && cached.isNotEmpty) return cached;
     } catch (_) {}
 
-    return 'Save consistently. Small steps add up.';
+    // final fallback curated quotes
+    const fallback = 'Keep going — progress, not perfection.';
+    return fallback;
   }
 
   /// Fetch a quote related to [theme]. Not all public providers support theme search.
@@ -90,7 +92,7 @@ class QuoteApiService {
         // try to pick one that contains the theme word
         final found = list.cast<Map<String, dynamic>>().firstWhere(
           (m) => (m['q'] ?? '').toString().toLowerCase().contains(t) || (m['a'] ?? '').toString().toLowerCase().contains(t),
-          orElse: () => {},
+          orElse: () => <String, dynamic>{},
         );
         if (found.isEmpty) throw Exception('not found');
         return '${found['q'] ?? ''}${(found['a'] != null && found['a'].toString().isNotEmpty) ? ' — ${found['a']}' : ''}';

@@ -1,85 +1,89 @@
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:async';
+
+import '../services/goal_db_service.dart';
 import 'goal_model.dart';
 
-/// Gestion centralisée des goals (persistance simple via SharedPreferences)
+/// Gestion centralisée des goals (persistance via GoalDbService).
 /// Fournit une API statique utilisée par les composants UI.
 class GoalsData {
-  static const _storageKey = 'goals_data_v1';
-
   // Liste en mémoire des goals. Composants lisent directement GoalsData.goals.
   static List<Goal> goals = [];
 
-  /// Charge depuis SharedPreferences. Si aucune donnée, laisse la liste vide.
+  /// Charge depuis la base SQLite (GoalDbService). Si aucune donnée, laisse la liste vide.
   static Future<void> load() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_storageKey);
-      if (raw == null || raw.isEmpty) {
-        goals = [];
-        return;
-      }
-      final list = json.decode(raw) as List<dynamic>;
-      goals = list
-          .map((e) => Goal.fromMap(Map<String, dynamic>.from(e as Map)))
-          .toList();
+      goals = await GoalDbService.instance.fetchAllGoals();
     } catch (_) {
-      // en cas d'erreur de parsing, on remet à vide pour éviter données corrompues
       goals = [];
     }
   }
 
-  /// Sauvegarde la liste courante dans SharedPreferences.
+  /// Sauvegarde la liste courante dans la base (upsert par goal).
+  /// Note: pour simplicité on effectue un insert (qui utilise REPLACE) pour chaque goal.
   static Future<void> save() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = json.encode(goals.map((g) => g.toMap()).toList());
-      await prefs.setString(_storageKey, raw);
+      for (final g in goals) {
+        await GoalDbService.instance.insertGoal(g);
+      }
+      // refresh in-memory list from DB to stay consistent
+      goals = await GoalDbService.instance.fetchAllGoals();
     } catch (_) {
-      // ignore write errors for now
+      // ignore for now
     }
   }
 
+  /// Ajoute un nouveau goal et le persiste.
   static Future<void> addGoal(Goal goal) async {
-    goals.add(goal);
-    await save();
+    try {
+      await GoalDbService.instance.insertGoal(goal);
+      goals = await GoalDbService.instance.fetchAllGoals();
+    } catch (_) {}
   }
 
+  /// Met à jour un goal existant.
   static Future<void> updateGoal(Goal updated) async {
-    final index = goals.indexWhere((g) => g.id == updated.id);
-    if (index == -1) return;
-    goals[index] = updated;
-    await save();
+    try {
+      await GoalDbService.instance.updateGoal(updated);
+      goals = await GoalDbService.instance.fetchAllGoals();
+    } catch (_) {}
   }
 
+  /// Supprime un goal par identifiant.
   static Future<void> deleteGoal(String id) async {
-    goals.removeWhere((g) => g.id == id);
-    await save();
+    try {
+      await GoalDbService.instance.deleteGoal(id);
+      goals = await GoalDbService.instance.fetchAllGoals();
+    } catch (_) {}
   }
 
   /// Ajoute une contribution à un goal identifié par [goalId].
   /// Si le goal n'existe pas, rien n'est fait.
   static Future<void> addContribution(String goalId, GoalTransaction tx) async {
-    final index = goals.indexWhere((g) => g.id == goalId);
-    if (index == -1) return;
-    final g = goals[index];
-    final newContributions = List<GoalTransaction>.from(g.contributions)..add(tx);
-    final updated = g.copyWith(contributions: newContributions, current: g.current + tx.amount);
-    goals[index] = updated;
-    await save();
+    try {
+      await GoalDbService.instance.addContribution(goalId, tx);
+      goals = await GoalDbService.instance.fetchAllGoals();
+    } catch (_) {}
   }
 
   static Future<void> clearAll() async {
-    goals = [];
-    await save();
+    // Supprime tous les goals en itérant (GoalDbService n'expose pas clear table).
+    try {
+      final all = await GoalDbService.instance.fetchAllGoals();
+      for (final g in all) {
+        await GoalDbService.instance.deleteGoal(g.id);
+      }
+      goals = [];
+    } catch (_) {
+      goals = [];
+    }
   }
 
   /// Pourcentage moyen d'avancement des goals actifs (0..100)
   static double get overallProgress {
-    if (goals.isEmpty) return 0;
+    if (goals.isEmpty) return 0.0;
     final activeGoals = goals.where((g) => !g.isCompleted && !g.isArchived).toList();
     if (activeGoals.isEmpty) return 100.0;
-    final totalProgress = activeGoals.fold<double>(0, (sum, goal) => sum + goal.progress);
+    final totalProgress = activeGoals.fold<double>(0.0, (sum, goal) => sum + goal.progress);
     return totalProgress / activeGoals.length;
   }
 }

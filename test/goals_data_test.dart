@@ -1,11 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'package:brain_stack/models/goal_model.dart';
 import 'package:brain_stack/models/goals_data.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  // Initialise sqflite pour l'environnement VM (tests)
+  sqfliteFfiInit();
+  databaseFactory = databaseFactoryFfi;
 
   group('GoalsData persistence', () {
     setUp(() async {
