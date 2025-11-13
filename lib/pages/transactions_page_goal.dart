@@ -3,19 +3,19 @@ import '../models/transaction_data.dart';
 import '../components/add_transaction_dialog.dart';
 import '../components/finance/converted_amount.dart';
 
-Color colorWithOpacity(Color c, double opacity) => Color.fromARGB((opacity * 255).round(), c.red, c.green, c.blue);
+int _ch(double v) => ((v * 255.0).round()) & 0xff;
+Color colorWithOpacity(Color c, double opacity) => Color.fromARGB(((opacity * 255.0).round()) & 0xff, _ch(c.r), _ch(c.g), _ch(c.b));
 
-class TransactionsPage extends StatefulWidget {
-  const TransactionsPage({super.key});
+class TransactionsPageGoal extends StatefulWidget {
+  const TransactionsPageGoal({super.key});
 
   @override
-  State<TransactionsPage> createState() => _TransactionsPageState();
+  State<TransactionsPageGoal> createState() => _TransactionsPageGoalState();
 }
 
-class _TransactionsPageState extends State<TransactionsPage> with TickerProviderStateMixin {
+class _TransactionsPageGoalState extends State<TransactionsPageGoal> with TickerProviderStateMixin {
   late TabController _tabController;
   bool _showAddTransactionDialog = false;
-  final String _displayCurrency = 'USD'; // default target currency for display
 
   @override
   void initState() {

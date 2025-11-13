@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../services/exchange_rate_service.dart';
+import '../../services/exchange_rate_service_goal.dart';
 
 /// Widget that displays an amount in base currency and (optionally) the converted amount
 /// into one or several target currencies. If all targets equal the source currency the widget only shows the base formatted value.
@@ -51,7 +51,7 @@ class _ConvertedAmountState extends State<ConvertedAmount> {
         final results = await Future.wait<double?>(targets.map((t) async {
           if (t == widget.fromCurrency.toUpperCase()) return null;
           try {
-            final v = await ExchangeRateService.convert(widget.amount, widget.fromCurrency, t);
+            final v = await ExchangeRateServiceGoal.convert(widget.amount, widget.fromCurrency, t);
             return v;
           } catch (_) {
             return null;

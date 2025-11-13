@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'http_helper.dart';
 
-class ExchangeRateService {
+class ExchangeRateServiceGoal {
   /// Retourne le taux de conversion pour base->target (ex: TND -> EUR)
   static Future<double> fetchRate(String base, String target, {http.Client? client}) async {
     client ??= HttpHelper.createClient();
