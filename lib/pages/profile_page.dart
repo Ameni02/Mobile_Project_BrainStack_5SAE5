@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/profile_data.dart';
-import '../components/todo_list.dart';
-import 'notes_page.dart';
 import 'goals_page.dart';
+import 'notes_page.dart';
+import '../components/todo_list.dart';
 import '../models/goals_data.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -100,6 +99,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
         ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           TabBar(
             controller: _tabController,
@@ -156,7 +156,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
                   ),
                 ),
               ),
-            ],
+            ),
           ),
           SizedBox(
             height: 500,

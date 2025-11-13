@@ -41,7 +41,5 @@ class ProfileData {
   ];
 
 
-  static double get totalTarget => objectives.fold(0, (sum, obj) => sum + obj.target);
-  static double get totalCurrent => objectives.fold(0, (sum, obj) => sum + obj.current);
-  static double get overallProgress => (totalCurrent / totalTarget) * 100;
+
 }
