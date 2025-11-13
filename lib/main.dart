@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart'; // ✅ pour charger .env
 import 'home_page.dart';
 import 'theme/app_colors.dart';
 
-void main() {
+Future<void> main() async {
+  // 🔹 Charger les variables d’environnement (ex: OPENWEATHER_API_KEY)
+  await dotenv.load(fileName: ".env");
+
+  // 🔹 Lancer l’application une fois que tout est prêt
   runApp(const MyApp());
 }
 
@@ -122,7 +127,6 @@ class MyApp extends StatelessWidget {
             side: const BorderSide(color: AppColors.borderLight),
           ),
         ),
-
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: AppColors.input,

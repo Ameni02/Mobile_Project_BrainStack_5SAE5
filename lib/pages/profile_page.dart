@@ -11,7 +11,8 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin {
+class _ProfilePageState extends State<ProfilePage>
+    with TickerProviderStateMixin {
   late TabController _tabController;
   bool _showAddObjectiveDialog = false;
 
@@ -27,7 +28,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
     super.dispose();
   }
 
-
+  // ---------------- HEADER ----------------
   Widget _buildHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -76,6 +77,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
     );
   }
 
+  // ---------------- TABS ----------------
   Widget _buildTabbedContent() {
     return Container(
       decoration: BoxDecoration(
@@ -98,39 +100,23 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
             indicatorColor: const Color(0xFF4A90E2),
             tabs: const [
               Tab(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.flag, size: 16),
-                    SizedBox(width: 4),
-                    Text("Goals"),
-                  ],
-                ),
+                icon: Icon(Icons.flag, size: 18),
+                text: "Goals",
               ),
               Tab(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.checklist, size: 16),
-                    SizedBox(width: 4),
-                    Text("To-Do"),
-                  ],
-                ),
+                icon: Icon(Icons.checklist, size: 18),
+                text: "To-Do",
               ),
               Tab(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.note, size: 16),
-                    SizedBox(width: 4),
-                    Text("Notes"),
-                  ],
-                ),
+                icon: Icon(Icons.note, size: 18),
+                text: "Notes",
               ),
             ],
           ),
+
+          // ✅ Flexible height: pas fixe (plus de coupure)
           SizedBox(
-            height: 500,
+            height: MediaQuery.of(context).size.height * 0.7,
             child: TabBarView(
               controller: _tabController,
               children: [
@@ -145,9 +131,11 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
     );
   }
 
+  // ---------------- GOALS TAB ----------------
   Widget _buildObjectivesTab() {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
+      physics: const BouncingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -182,14 +170,16 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
             ],
           ),
           const SizedBox(height: 20),
-          Expanded(
-            child: ListView.builder(
-              itemCount: ProfileData.objectives.length,
-              itemBuilder: (context, index) {
-                final objective = ProfileData.objectives[index];
-                return _buildObjectiveCard(objective);
-              },
-            ),
+
+          // Liste dynamique
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: ProfileData.objectives.length,
+            itemBuilder: (context, index) {
+              final objective = ProfileData.objectives[index];
+              return _buildObjectiveCard(objective);
+            },
           ),
           const SizedBox(height: 16),
           _buildSummaryCard(),
@@ -198,6 +188,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
     );
   }
 
+  // ---------------- OBJECTIVE CARD ----------------
   Widget _buildObjectiveCard(Objective objective) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -217,6 +208,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -261,15 +253,14 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
             ],
           ),
           const SizedBox(height: 16),
+
+          // Progress Bar
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
                 "Progress",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF6B7280),
-                ),
+                style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
               ),
               Text(
                 "${objective.progress.toStringAsFixed(0)}%",
@@ -285,19 +276,19 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
           LinearProgressIndicator(
             value: objective.progress / 100,
             backgroundColor: const Color(0xFFE5E7EB),
-            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF4A90E2)),
+            valueColor:
+            const AlwaysStoppedAnimation<Color>(Color(0xFF4A90E2)),
             minHeight: 8,
           ),
           const SizedBox(height: 12),
+
+          // Footer
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 "\$${objective.current.toStringAsFixed(0)} / \$${objective.target.toStringAsFixed(0)}",
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF6B7280),
-                ),
+                style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
               ),
               Text(
                 "\$${objective.remaining.toStringAsFixed(0)} to go",
@@ -314,6 +305,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
     );
   }
 
+  // ---------------- SUMMARY CARD ----------------
   Widget _buildSummaryCard() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -352,10 +344,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
                 const SizedBox(height: 4),
                 Text(
                   "You're ${ProfileData.overallProgress.toStringAsFixed(0)}% towards your total goals",
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF6B7280),
-                  ),
+                  style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
                 ),
               ],
             ),
@@ -365,6 +354,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
     );
   }
 
+  // ---------------- TODO & NOTES ----------------
   Widget _buildTodosTab() {
     return const Padding(
       padding: EdgeInsets.all(20),
@@ -379,40 +369,42 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
     );
   }
 
+  // ---------------- BUILD ----------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
-      body: Stack(
-        children: [
-          SafeArea(
-            child: SingleChildScrollView(
+      body: SafeArea(
+        bottom: false,
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header
                     _buildHeader(),
                     const SizedBox(height: 24),
-                    
-                    // Tabbed Content
                     _buildTabbedContent(),
-                    const SizedBox(height: 100), // Space for bottom nav
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
             ),
-          ),
-          AddObjectiveDialog(
-            isOpen: _showAddObjectiveDialog,
-            onClose: () {
-              setState(() {
-                _showAddObjectiveDialog = false;
-              });
-            },
-          ),
-        ],
+
+            // ✅ Dialog Add Goal
+            AddObjectiveDialog(
+              isOpen: _showAddObjectiveDialog,
+              onClose: () {
+                setState(() {
+                  _showAddObjectiveDialog = false;
+                });
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
