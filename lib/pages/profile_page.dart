@@ -1,7 +1,7 @@
-// ==================== profile_page.dart ====================
 import 'package:flutter/material.dart';
+import '../models/profile_data.dart';
 import '../components/todo_list.dart';
-import '../components/notes_list.dart';
+import 'notes_page.dart';
 import 'goals_page.dart';
 import '../models/goals_data.dart';
 
@@ -20,7 +20,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     _loadGoalsSummary();
   }
 
@@ -70,7 +70,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Color.fromRGBO(0, 0, 0, 0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               ),
@@ -93,7 +93,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -127,14 +127,33 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
                   ],
                 ),
               ),
-              Tab(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.note, size: 16),
-                    SizedBox(width: 4),
-                    Text("Notes"),
-                  ],
+            ],
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12.0),
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    PageRouteBuilder(
+                      pageBuilder: (_, __, ___) => const NotesPage(),
+                      transitionDuration: Duration.zero,
+                      reverseTransitionDuration: Duration.zero,
+                      transitionsBuilder: (_, __, ___, child) => child,
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.note, size: 16),
+                label: const Text("Notes"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4A90E2),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
             ],
@@ -146,7 +165,6 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
               children: [
                 _buildGoalsTab(),
                 _buildTodosTab(),
-                _buildNotesTab(),
               ],
             ),
           ),
@@ -277,30 +295,70 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildNotesTab() {
-    return const Padding(
-      padding: EdgeInsets.all(20),
-      child: NotesList(),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(),
-                const SizedBox(height: 24),
-                _buildTabbedContent(),
-                const SizedBox(height: 100),
-              ],
-            ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              _buildHeader(),
+              const SizedBox(height: 24),
+
+              // Tabbed Content
+              _buildTabbedContent(),
+              const SizedBox(height: 100), // Space for bottom nav
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: BottomAppBar(
+        child: Container(
+          height: 60,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              IconButton(
+                onPressed: () {},
+                icon: const Icon(Icons.home, color: Color(0xFF4A90E2)),
+              ),
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    _tabController.index = 1;
+                  });
+                },
+                icon: const Icon(Icons.checklist, color: Color(0xFF6B7280)),
+              ),
+              SizedBox(width: 48), // Spacer for the center button
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    _tabController.index = 0;
+                  });
+                },
+                icon: const Icon(Icons.flag, color: Color(0xFF6B7280)),
+              ),
+              IconButton(
+                onPressed: () {},
+                icon: const Icon(Icons.person, color: Color(0xFF6B7280)),
+              ),
+            ],
           ),
         ),
       ),
