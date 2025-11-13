@@ -1,7 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../models/transaction_data.dart';
 
+// OCR/Mindee removed — receipt picker stores image path only.
 class AddTransactionDialog extends StatefulWidget {
   final bool isOpen;
   final VoidCallback onClose;
@@ -25,6 +29,9 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
 
   // Champs dynamiques supplémentaires
   Map<String, dynamic> _extraFields = {};
+  final ImagePicker _picker = ImagePicker();
+  String? _receiptPath;
+  bool _isSubmitting = false;
 
   final List<String> _expenseCategories = [
     'Shopping',
@@ -53,6 +60,8 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
         setState(() {
           _selectedCategory = '';
           _extraFields.clear();
+          _amountController.clear();
+          _descriptionController.clear();
         });
       }
     });
@@ -75,18 +84,18 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
 
   void _handleSubmit(String type) async {
     if (_formKey.currentState!.validate() && _selectedCategory.isNotEmpty) {
+      setState(() => _isSubmitting = true);
 
       final newTransaction = Transaction(
         id: DateTime.now().millisecondsSinceEpoch, // ID unique
         name: _descriptionController.text,
         category: _selectedCategory,
         date: DateTime.now().toString(), // ou formatte comme "Today, 2:30 PM"
-        amount: double.parse(_amountController.text),
+        amount: double.parse(_amountController.text.replaceAll(',', '.')),
         icon: type == 'expense' ? Icons.shopping_bag : Icons.attach_money,
         color: type == 'expense' ? "#FF0000" : "#00FF00",
         type: type == 'expense' ? TransactionType.expense : TransactionType.revenue,
         extraFields: _extraFields.isNotEmpty ? Map.from(_extraFields) : {}, // ✅ Ajouté
-
       );
 
       // Ajout dans TransactionData et sauvegarde
@@ -98,11 +107,26 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
       setState(() {
         _selectedCategory = '';
         _extraFields.clear();
+        _receiptPath = null;
+        _isSubmitting = false;
       });
 
       // Fermer le dialog
       widget.onClose();
     }
+  }
+
+  Future<void> _pickReceipt() async {
+    final XFile? picked = await _picker.pickImage(source: ImageSource.gallery);
+    if (picked == null) return;
+
+    setState(() {
+      _receiptPath = picked.path;
+      _extraFields['receiptPath'] = picked.path;
+    });
+
+    // No OCR: just keep the picked receipt path in extraFields
+    // (All OCR-related functionality has been removed)
   }
 
   @override
@@ -121,13 +145,25 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
         padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Add Transaction',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Add Transaction',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: widget.onClose,
+                    icon: const Icon(Icons.close, color: Colors.grey),
+                    tooltip: 'Close',
+                  ),
+                ],
               ),
               const SizedBox(height: 24),
 
@@ -186,7 +222,9 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
           ),
           validator: (value) {
             if (value == null || value.isEmpty) return 'Please enter an amount';
-            if (double.tryParse(value) == null) return 'Invalid amount';
+            final parsed = double.tryParse(value.replaceAll(',', '.'));
+            if (parsed == null) return 'Invalid amount';
+            if (parsed <= 0) return 'Amount must be greater than 0';
             return null;
           },
         ),
@@ -199,8 +237,11 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
             border: OutlineInputBorder(),
             contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
-          validator: (value) =>
-          value == null || value.isEmpty ? 'Please enter a description' : null,
+          validator: (value) {
+            if (value == null || value.isEmpty) return 'Please enter a description';
+            if (value.length > 100) return 'Description too long (max 100 chars)';
+            return null;
+          },
         ),
         const SizedBox(height: 16),
     DropdownButtonFormField<String>(
@@ -230,11 +271,56 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
     value == null || value.isEmpty ? 'Please select a category' : null,
     ),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
+
+        // Receipt picker for expenses
+        if (_tabController.index == 0) ...[
+          Row(
+            children: [
+              if (_receiptPath != null)
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.file(File(_receiptPath!), fit: BoxFit.cover),
+                  ),
+                ),
+              if (_receiptPath != null) const SizedBox(width: 12),
+              ElevatedButton.icon(
+                onPressed: _pickReceipt,
+                icon: const Icon(Icons.receipt_long),
+                label: Text(_receiptPath == null ? 'Add Receipt' : 'Change Receipt'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4A90E2),
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+        ],
+
+        const SizedBox(height: 8),
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: () => _handleSubmit('expense'),
+            onPressed: (_isSubmitting)
+                ? null
+                : () {
+                    // Final validation including category
+                    if (!_formKey.currentState!.validate() || _selectedCategory.isEmpty) {
+                      if (_selectedCategory.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a category')));
+                      }
+                      return;
+                    }
+                    _handleSubmit('expense');
+                  },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF4A90E2),
               foregroundColor: Colors.white,
@@ -243,10 +329,12 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            child: const Text(
-              'Add Expense',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
+            child: _isSubmitting
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Text(
+                    'Add Expense',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
           ),
         ),
       ],
@@ -287,7 +375,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: _selectedCategory.isEmpty ? null : _selectedCategory,
+            value: _revenueCategories.contains(_selectedCategory) ? _selectedCategory : null,
             decoration: const InputDecoration(
               labelText: 'Category',
               border: OutlineInputBorder(),

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../models/analytics_data.dart';
+import '../models/transaction_data.dart';
 import '../theme/app_colors.dart';
+import '../components/expense_chatbot.dart';
 
 class AnalyticsPage extends StatefulWidget {
   const AnalyticsPage({super.key});
@@ -13,11 +15,82 @@ class AnalyticsPage extends StatefulWidget {
 
 class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateMixin {
   late TabController _tabController;
+  List<MonthlyData> _monthlyData = [];
+  List<WeeklySpending> _weeklySpending = [];
+  List<CategoryData> _categoryData = [];
+  double _totalExpenses = 0;
+  double _totalRevenue = 0;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    // Load transactions and compute analytics
+    TransactionData.loadTransactions().then((_) {
+      _computeAnalytics();
+    });
+  }
+
+  void _computeAnalytics() {
+    final now = DateTime.now();
+    final all = TransactionData.allTransactions;
+
+    // Totals
+    _totalExpenses = TransactionData.totalExpenses;
+    _totalRevenue = TransactionData.totalRevenue;
+
+    // Monthly - last 6 months
+    List<MonthlyData> monthly = [];
+    for (int i = 5; i >= 0; i--) {
+      final monthDate = DateTime(now.year, now.month - i);
+      final label = DateFormat('MMM').format(monthDate);
+      double exp = 0;
+      double rev = 0;
+      for (var t in all) {
+        DateTime parsed;
+        try {
+          parsed = DateTime.parse(t.date);
+        } catch (_) {
+          parsed = now;
+        }
+        if (parsed.year == monthDate.year && parsed.month == monthDate.month) {
+          if (t.type == TransactionType.expense) exp += t.amount;
+          else rev += t.amount;
+        }
+      }
+      monthly.add(MonthlyData(month: label, expenses: exp, revenue: rev));
+    }
+    _monthlyData = monthly;
+
+    // Weekly - last 7 days
+    List<WeeklySpending> weekly = [];
+    for (int i = 6; i >= 0; i--) {
+      final dayDate = DateTime(now.year, now.month, now.day - i);
+      final label = DateFormat('EEE').format(dayDate);
+      double amount = 0;
+      for (var t in TransactionData.expenseTransactions) {
+        DateTime parsed;
+        try {
+          parsed = DateTime.parse(t.date);
+        } catch (_) {
+          parsed = now;
+        }
+        if (parsed.year == dayDate.year && parsed.month == dayDate.month && parsed.day == dayDate.day) {
+          amount += t.amount;
+        }
+      }
+      weekly.add(WeeklySpending(day: label, amount: amount));
+    }
+    _weeklySpending = weekly;
+
+    // Category - expenses by category
+    final Map<String, double> catMap = {};
+    for (var t in TransactionData.expenseTransactions) {
+      catMap[t.category] = (catMap[t.category] ?? 0) + t.amount;
+    }
+    _categoryData = catMap.entries.map((e) => CategoryData(name: e.key, value: e.value, color: "#65C4A3")).toList();
+
+    setState(() {});
   }
 
   @override
@@ -64,26 +137,28 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Analytics",
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1A1A1A),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Analytics",
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1A1A1A),
+                ),
               ),
-            ),
-            SizedBox(height: 4),
-            Text(
-              "Track your financial progress",
-              style: TextStyle(
-                fontSize: 16,
-                color: Color(0xFF6B7280),
+              const SizedBox(height: 4),
+              const Text(
+                "Track your financial progress",
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFF6B7280),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         Container(
           padding: const EdgeInsets.all(8),
@@ -98,10 +173,21 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
               ),
             ],
           ),
-          child: const Icon(
-            Icons.settings_outlined,
-            color: Color(0xFF6B7280),
-            size: 24,
+          child: Row(
+            children: [
+              IconButton(
+                onPressed: () {
+                  showDialog(context: context, builder: (_) => const ExpenseChatbot());
+                },
+                icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF6B7280)),
+                tooltip: 'Expense Helper',
+              ),
+              const Icon(
+                Icons.settings_outlined,
+                color: Color(0xFF6B7280),
+                size: 24,
+              ),
+            ],
           ),
         ),
       ],
@@ -115,7 +201,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
           child: _buildStatCard(
             icon: Icons.attach_money,
             title: "Net Income",
-            value: "\$${AnalyticsData.netIncome.toStringAsFixed(0)}",
+            value: "\$${(_totalRevenue - _totalExpenses).toStringAsFixed(0)}",
             subtitle: "Last 6 months",
             color: AppColors.accent,
           ),
@@ -125,7 +211,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
           child: _buildStatCard(
             icon: Icons.trending_up,
             title: "Savings Rate",
-            value: "${AnalyticsData.savingsRate.toStringAsFixed(1)}%",
+            value: "${(_totalRevenue == 0 ? 0 : ((_totalRevenue - _totalExpenses) / _totalRevenue * 100)).toStringAsFixed(1)}%",
             subtitle: "Of total income",
             color: AppColors.textPrimary,
           ),
@@ -267,7 +353,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
       child: BarChart(
         BarChartData(
           alignment: BarChartAlignment.spaceAround,
-          maxY: 6000,
+          maxY: (_monthlyData.fold(0.0, (s, d) => s + d.expenses + d.revenue) * 0.6).clamp(1000, 100000),
           barTouchData: BarTouchData(enabled: false),
           titlesData: FlTitlesData(
             show: true,
@@ -277,8 +363,9 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
               sideTitles: SideTitles(
                 showTitles: true,
                 getTitlesWidget: (value, meta) {
+                  if (value.toInt() < 0 || value.toInt() >= _monthlyData.length) return const Text('');
                   return Text(
-                    AnalyticsData.monthlyData[value.toInt()].month,
+                    _monthlyData[value.toInt()].month,
                     style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
                   );
                 },
@@ -297,7 +384,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
             ),
           ),
           borderData: FlBorderData(show: false),
-          barGroups: AnalyticsData.monthlyData.asMap().entries.map((entry) {
+          barGroups: _monthlyData.asMap().entries.map((entry) {
             int index = entry.key;
             MonthlyData data = entry.value;
             return BarChartGroupData(
@@ -338,7 +425,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
                 showTitles: true,
                 getTitlesWidget: (value, meta) {
                   return Text(
-                    AnalyticsData.weeklySpending[value.toInt()].day,
+                (value.toInt() < 0 || value.toInt() >= _weeklySpending.length) ? '' : _weeklySpending[value.toInt()].day,
                     style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
                   );
                 },
@@ -359,7 +446,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
           borderData: FlBorderData(show: false),
           lineBarsData: [
             LineChartBarData(
-              spots: AnalyticsData.weeklySpending.asMap().entries.map((entry) {
+              spots: _weeklySpending.asMap().entries.map((entry) {
                 return FlSpot(entry.key.toDouble(), entry.value.amount);
               }).toList(),
               isCurved: true,
@@ -395,10 +482,10 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
         PieChartData(
           sectionsSpace: 2,
           centerSpaceRadius: 60,
-          sections: AnalyticsData.categoryData.asMap().entries.map((entry) {
-            int index = entry.key;
+          sections: _categoryData.isEmpty ? [] : _categoryData.asMap().entries.map((entry) {
             CategoryData data = entry.value;
-            double percentage = (data.value / AnalyticsData.categoryData.fold(0, (sum, item) => sum + item.value)) * 100;
+            double total = _categoryData.fold(0, (sum, item) => sum + item.value);
+            double percentage = total == 0 ? 0 : (data.value / total) * 100;
             
             return PieChartSectionData(
               color: Color(int.parse(data.color.replaceAll('#', '0xFF'))),

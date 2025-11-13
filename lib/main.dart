@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
-import 'home_page.dart';
+import 'pages/login_page.dart';
+// sqflite_common_ffi removed for mobile builds; use platform-native sqflite plugin.
 import 'theme/app_colors.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // No sqflite ffi initialization here; mobile uses platform-native sqflite.
+
   runApp(const MyApp());
 }
 
@@ -140,7 +144,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const HomeScreen(),
+      home: const LoginPage(),
     );
   }
 }
