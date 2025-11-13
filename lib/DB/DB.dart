@@ -35,8 +35,8 @@ class DB {
             data TEXT NOT NULL
           )
         ''');
-        await db.insert('categoriesNote', {'nom': 'Personnel', 'couleurHex': '#2196F3'});
-        await db.insert('categoriesNote', {'nom': 'Travail', 'couleurHex': '#FF9800'});
+        await db.insert('categoriesNote', {'nom': 'Personal', 'couleurHex': '#2196F3'});
+        await db.insert('categoriesNote', {'nom': 'Work', 'couleurHex': '#FF9800'});
         await db.insert('categoriesNote', {'nom': 'Important', 'couleurHex': '#F44336'});
         // Peupler la table goals si vide lors de la création
         await _seedGoals(db);
@@ -49,8 +49,8 @@ class DB {
           // Peupler si vide (catégories)
           final count = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM categoriesNote')) ?? 0;
           if (count == 0) {
-            await db.insert('categoriesNote', {'nom': 'Personnel', 'couleurHex': '#2196F3'});
-            await db.insert('categoriesNote', {'nom': 'Travail', 'couleurHex': '#FF9800'});
+            await db.insert('categoriesNote', {'nom': 'Personal', 'couleurHex': '#2196F3'});
+            await db.insert('categoriesNote', {'nom': 'Work', 'couleurHex': '#FF9800'});
             await db.insert('categoriesNote', {'nom': 'Important', 'couleurHex': '#F44336'});
           }
           // Migration: créer la table goals si elle n'existe pas
