@@ -42,7 +42,7 @@ class CategoryBreakdownCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  "\${entry.value.toStringAsFixed(0)}",
+                  "TND ${entry.value.toStringAsFixed(0)}",
                   style: TextStyle(
                     color: Colors.grey[600],
                     fontWeight: FontWeight.w600,

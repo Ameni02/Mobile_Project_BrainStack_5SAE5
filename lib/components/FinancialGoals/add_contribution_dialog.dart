@@ -40,8 +40,8 @@ class _AddContributionDialogState extends State<AddContributionDialog> {
             TextFormField(
               controller: _amountController,
               decoration: const InputDecoration(
-                labelText: "Amount *",
-                prefixIcon: Icon(Icons.attach_money),
+                labelText: "Amount (TND) *",
+                prefixText: 'TND ',
                 border: OutlineInputBorder(),
               ),
               keyboardType: TextInputType.number,
@@ -87,7 +87,7 @@ class _AddContributionDialogState extends State<AddContributionDialog> {
 
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text("Added \${_amountController.text} to ${widget.goal.title}!"),
+                  content: Text("Added TND ${_amountController.text} to ${widget.goal.title}!"),
                   backgroundColor: Colors.green,
                 ),
               );

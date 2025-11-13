@@ -48,12 +48,12 @@ class QuickStatsCard extends StatelessWidget {
                 Icons.trending_up,
               ),
               _buildStatItem(
-                "\$${totalCurrent.toStringAsFixed(0)}",
+                "TND ${totalCurrent.toStringAsFixed(0)}",
                 "Saved",
                 Icons.savings,
               ),
               _buildStatItem(
-                "\$${totalRemaining.toStringAsFixed(0)}",
+                "TND ${totalRemaining.toStringAsFixed(0)}",
                 "Remaining",
                 Icons.flag,
               ),

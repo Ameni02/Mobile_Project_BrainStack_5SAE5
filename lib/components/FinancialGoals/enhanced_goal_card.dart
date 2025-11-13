@@ -122,7 +122,7 @@ class EnhancedGoalCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "\$${goal.current.toStringAsFixed(0)} / \$${goal.target.toStringAsFixed(0)}",
+                          "TND ${goal.current.toStringAsFixed(0)} / TND ${goal.target.toStringAsFixed(0)}",
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 16,

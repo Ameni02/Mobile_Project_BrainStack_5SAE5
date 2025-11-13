@@ -52,12 +52,12 @@ class _CryptoPageState extends State<CryptoPage> {
         final data = await CryptoService.getHistoricalData(crypto, vsCurrency, 7);
         charts[crypto] = data
             .map((e) => CandleData(
-          DateTime.fromMillisecondsSinceEpoch(e['time']),
-          e['open'],
-          e['high'],
-          e['low'],
-          e['close'],
-        ))
+                  DateTime.fromMillisecondsSinceEpoch((e['time'] as num).toInt()),
+                  (e['open'] as num).toDouble(),
+                  (e['high'] as num).toDouble(),
+                  (e['low'] as num).toDouble(),
+                  (e['close'] as num).toDouble(),
+                ))
             .toList();
       }
 
@@ -76,6 +76,7 @@ class _CryptoPageState extends State<CryptoPage> {
     if (candles.isEmpty) return 0;
     final firstPrice = candles.first.open;
     final lastPrice = candles.last.close;
+    if (firstPrice == 0) return 0; // évite division par zéro
     return ((lastPrice - firstPrice) / firstPrice) * 100;
   }
 
@@ -103,31 +104,32 @@ class _CryptoPageState extends State<CryptoPage> {
       ),
       body: isLoading
           ? const Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFF1E1E2E),
-        ),
-      )
+              child: CircularProgressIndicator(
+                color: Color(0xFF1E1E2E),
+              ),
+            )
           : RefreshIndicator(
-        onRefresh: fetchAllData,
-        color: const Color(0xFF1E1E2E),
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: cryptoList.map((crypto) {
-            final price = cryptoPrices![crypto][vsCurrency];
-            final candles = cryptoCharts[crypto]!;
-            final change = _calculateChange(candles);
-            final isPositive = change >= 0;
+              onRefresh: fetchAllData,
+              color: const Color(0xFF1E1E2E),
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: cryptoList.map((crypto) {
+                  // Cast explicite en double pour éviter les erreurs de type si l'API retourne un int
+                  final price = (cryptoPrices![crypto][vsCurrency] as num).toDouble();
+                  final candles = cryptoCharts[crypto]!;
+                  final change = _calculateChange(candles);
+                  final isPositive = change >= 0;
 
-            return _buildCryptoCard(
-              crypto: crypto,
-              price: price,
-              candles: candles,
-              change: change,
-              isPositive: isPositive,
-            );
-          }).toList(),
-        ),
-      ),
+                  return _buildCryptoCard(
+                    crypto: crypto,
+                    price: price,
+                    candles: candles,
+                    change: change,
+                    isPositive: isPositive,
+                  );
+                }).toList(),
+              ),
+            ),
     );
   }
 
@@ -155,7 +157,7 @@ class _CryptoPageState extends State<CryptoPage> {
             end: Alignment.bottomRight,
             colors: [
               Colors.white,
-              cryptoColor.withOpacity(0.05),
+              cryptoColor.withValues(alpha: 0.05),
             ],
           ),
         ),
@@ -170,7 +172,7 @@ class _CryptoPageState extends State<CryptoPage> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: cryptoColor.withOpacity(0.1),
+                      color: cryptoColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
@@ -210,8 +212,8 @@ class _CryptoPageState extends State<CryptoPage> {
                     ),
                     decoration: BoxDecoration(
                       color: isPositive
-                          ? Colors.green.withOpacity(0.1)
-                          : Colors.red.withOpacity(0.1),
+                          ? Colors.green.withValues(alpha: 0.1)
+                          : Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
@@ -393,7 +395,7 @@ class _CryptoPageState extends State<CryptoPage> {
                         child: Container(
                           padding: const EdgeInsets.all(6),
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.5),
+                            color: Colors.black.withValues(alpha: 0.5),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Icon(
@@ -485,7 +487,7 @@ class _CryptoPageState extends State<CryptoPage> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: cryptoColor.withOpacity(0.1),
+                  color: cryptoColor.withValues(alpha: 0.1),
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(20),
                     topRight: Radius.circular(20),
@@ -528,8 +530,8 @@ class _CryptoPageState extends State<CryptoPage> {
                       ),
                       decoration: BoxDecoration(
                         color: isPositive
-                            ? Colors.green.withOpacity(0.1)
-                            : Colors.red.withOpacity(0.1),
+                            ? Colors.green.withValues(alpha: 0.1)
+                            : Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Row(
