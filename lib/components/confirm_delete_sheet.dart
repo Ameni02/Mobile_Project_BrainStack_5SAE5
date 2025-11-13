@@ -161,7 +161,7 @@ class _ConfirmDeleteSheetState extends State<ConfirmDeleteSheet> with SingleTick
                             child: ElevatedButton(
                               onPressed: _processing ? null : _handleConfirm,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red.shade500,
+                                backgroundColor: Colors.blue.shade700,
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),

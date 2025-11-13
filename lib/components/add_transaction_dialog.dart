@@ -145,77 +145,96 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
   Widget build(BuildContext context) {
     if (!widget.isOpen) return const SizedBox.shrink();
 
-    return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Container(
-        constraints: const BoxConstraints(
-          maxHeight: 600, // hauteur max du dialog
-          maxWidth: 400,
-        ),
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          autovalidateMode: AutovalidateMode.onUserInteraction,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Add Transaction',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+    // Render as an inline component (overlay) so it can be used inside a Stack
+    return Positioned.fill(
+      child: Stack(
+        children: [
+          // Backdrop
+          GestureDetector(
+            onTap: widget.onClose,
+            child: Container(color: Colors.black54),
+          ),
+          // Centered card
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420, maxHeight: 640),
+              child: Material(
+                color: AppColors.card,
+                elevation: 12,
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  child: Form(
+                    key: _formKey,
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                'Add Transaction',
+                                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: widget.onClose,
+                              icon: const Icon(Icons.close, color: Colors.grey),
+                              tooltip: 'Close',
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Tabs (styled pill indicator, equal width)
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF3F4F6),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: SizedBox(
+                            height: 44,
+                            child: TabBar(
+                              controller: _tabController,
+                              indicator: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              indicatorSize: TabBarIndicatorSize.tab,
+                              labelPadding: EdgeInsets.zero,
+                              indicatorPadding: const EdgeInsets.all(4),
+                              labelColor: AppColors.primaryForeground,
+                              unselectedLabelColor: AppColors.textSecondary,
+                              tabs: [
+                                Tab(child: Center(child: Text('Expense', style: const TextStyle(fontWeight: FontWeight.w600)))),
+                                Tab(child: Center(child: Text('Revenue', style: const TextStyle(fontWeight: FontWeight.w600)))),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Content
+                        Expanded(
+                          child: TabBarView(
+                            controller: _tabController,
+                            children: [
+                              SingleChildScrollView(child: _buildExpenseForm()),
+                              SingleChildScrollView(child: _buildRevenueForm()),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  IconButton(
-                    onPressed: widget.onClose,
-                    icon: const Icon(Icons.close, color: Colors.grey),
-                    tooltip: 'Close',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Tabs
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3F4F6),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: TabBar(
-                  controller: _tabController,
-                  labelColor: Colors.white,
-                  unselectedLabelColor: const Color(0xFF6B7280),
-                  indicator: BoxDecoration(
-                    color: const Color(0xFF4A90E2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  tabs: const [
-                    Tab(text: 'Expense'),
-                    Tab(text: 'Revenue'),
-                  ],
                 ),
               ),
-              const SizedBox(height: 24),
-
-              // ✅ Ici, on utilise Expanded à l'intérieur d'une colonne contrainte
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    SingleChildScrollView(child: _buildExpenseForm()),
-                    SingleChildScrollView(child: _buildRevenueForm()),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      )
-      ,
+        ],
+      ),
     );
   }
 
@@ -256,32 +275,32 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
           },
         ),
         const SizedBox(height: 16),
-    DropdownButtonFormField<String>(
-    value: (_tabController.index == 0
-    ? _expenseCategories.contains(_selectedCategory)
-        : _revenueCategories.contains(_selectedCategory))
-    ? _selectedCategory
-        : null,
-    decoration: const InputDecoration(
-    labelText: 'Category',
-    border: OutlineInputBorder(),
-    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    ),
-    hint: const Text('Select category'),
-    items: (_tabController.index == 0
-    ? _expenseCategories
-        : _revenueCategories)
-        .map((category) => DropdownMenuItem(value: category, child: Text(category)))
-        .toList(),
-    onChanged: (value) {
-    setState(() {
-    _selectedCategory = value ?? '';
-    _extraFields.clear();
-    });
-    },
-    validator: (value) =>
-    value == null || value.isEmpty ? 'Please select a category' : null,
-    ),
+        DropdownButtonFormField<String>(
+          value: (_tabController.index == 0
+              ? _expenseCategories.contains(_selectedCategory)
+              : _revenueCategories.contains(_selectedCategory))
+              ? _selectedCategory
+              : null,
+          decoration: const InputDecoration(
+            labelText: 'Category',
+            border: OutlineInputBorder(),
+            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+          hint: const Text('Select category'),
+          items: (_tabController.index == 0
+              ? _expenseCategories
+              : _revenueCategories)
+              .map((category) => DropdownMenuItem(value: category, child: Text(category)))
+              .toList(),
+          onChanged: (value) {
+            setState(() {
+              _selectedCategory = value ?? '';
+              _extraFields.clear();
+            });
+          },
+          validator: (value) =>
+          value == null || value.isEmpty ? 'Please select a category' : null,
+        ),
 
         const SizedBox(height: 16),
 
@@ -326,15 +345,15 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
             onPressed: (_isSubmitting)
                 ? null
                 : () {
-                    // Final validation including category
-                    if (!_formKey.currentState!.validate() || _selectedCategory.isEmpty) {
-                      if (_selectedCategory.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a category')));
-                      }
-                      return;
-                    }
-                    _handleSubmit('expense');
-                  },
+              // Final validation including category
+              if (!_formKey.currentState!.validate() || _selectedCategory.isEmpty) {
+                if (_selectedCategory.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a category')));
+                }
+                return;
+              }
+              _handleSubmit('expense');
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.primaryForeground,
@@ -346,9 +365,9 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
             child: _isSubmitting
                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                 : const Text(
-                    'Add Expense',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
+              'Add Expense',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
           ),
         ),
       ],
@@ -418,7 +437,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () => _handleSubmit('revenue'),
-            style: ElevatedButton.styleFrom(
+              style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: AppColors.primaryForeground,
                 padding: const EdgeInsets.symmetric(vertical: 16),
