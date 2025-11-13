@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../models/task_model.dart';
 import '../services/database_helper.dart';
 import 'calendar_page.dart';
+import 'task_form.dart';
 
 class TaskDashboard extends StatefulWidget {
   const TaskDashboard({super.key});
@@ -15,7 +16,6 @@ class TaskDashboard extends StatefulWidget {
 class _TaskDashboardState extends State<TaskDashboard>
     with SingleTickerProviderStateMixin {
 
-  // ✅ Correction essentielle : déclaration du filtre de priorité
   TaskPriority? _selectedPriorityFilter;
 
   late AnimationController _animController;
@@ -31,6 +31,7 @@ class _TaskDashboardState extends State<TaskDashboard>
   @override
   void initState() {
     super.initState();
+
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -52,6 +53,7 @@ class _TaskDashboardState extends State<TaskDashboard>
     setState(() => tasks = loaded);
 
     final urgentTasks = _getUrgentTasks(loaded);
+
     if (urgentTasks.isNotEmpty) {
       _animController.forward();
       Future.delayed(const Duration(milliseconds: 500), () {
@@ -71,6 +73,7 @@ class _TaskDashboardState extends State<TaskDashboard>
     }).toList();
   }
 
+  /// Popup urgent
   void _showUrgentPopup(List<Task> urgentTasks) {
     final task = urgentTasks.first;
     final diff = task.date.difference(DateTime.now()).inDays;
@@ -151,6 +154,7 @@ class _TaskDashboardState extends State<TaskDashboard>
     );
   }
 
+  /// Update task status
   Future<void> _updateTaskStatus(Task task, TaskStatus newStatus) async {
     final db = DatabaseHelper();
     final updatedTask = Task(
@@ -161,8 +165,9 @@ class _TaskDashboardState extends State<TaskDashboard>
       date: task.date,
       startTime: task.startTime,
       status: newStatus,
-      priority: task.priority, // 🔥 NE PAS OUBLIER
+      priority: task.priority,
     );
+
     await db.updateTask(updatedTask);
     _loadTasks();
   }
@@ -179,6 +184,69 @@ class _TaskDashboardState extends State<TaskDashboard>
     super.dispose();
   }
 
+  // ----------------------------------------
+  //  DELETE POPUP
+  // ----------------------------------------
+  void _confirmDelete(Task task) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Text(
+          "Delete Task",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          "Are you sure you want to delete \"${task.title}\" ?",
+          style: const TextStyle(fontSize: 15),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+            onPressed: () async {
+              final db = DatabaseHelper();
+              await db.deleteTask(task.id!);
+              Navigator.pop(context);
+              _loadTasks();
+            },
+            child: const Text("Delete", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ----------------------------------------
+  //  EDIT TASK
+  // ----------------------------------------
+  void _editTask(Task task) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TaskForm(
+          selectedDate: task.date,
+          taskToEdit: task, // IMPORTANT
+          onSave: (updatedTask) async {
+            final db = DatabaseHelper();
+
+            await db.updateTask(updatedTask);
+            _loadTasks();
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final progress = _calculateProgress();
@@ -192,7 +260,9 @@ class _TaskDashboardState extends State<TaskDashboard>
       body: SafeArea(
         child: Column(
           children: [
-            // ===== HEADER =====
+            // ----------------------------------------
+            //   HEADER
+            // ----------------------------------------
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
               color: Colors.white,
@@ -253,7 +323,9 @@ class _TaskDashboardState extends State<TaskDashboard>
               ),
             ),
 
-            // ===== CONTENU =====
+            // ----------------------------------------
+            //  CONTENT
+            // ----------------------------------------
             Expanded(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
@@ -298,7 +370,7 @@ class _TaskDashboardState extends State<TaskDashboard>
                         ),
                       ),
 
-                    // === PROGRESSION ===
+                    // PROGRESS CIRCLE
                     Center(
                       child: Column(
                         children: [
@@ -336,15 +408,16 @@ class _TaskDashboardState extends State<TaskDashboard>
 
                     const SizedBox(height: 20),
 
-                    // === FILTRE PRIORITÉ 🚀
+                    // PRIORITY FILTER
                     _priorityFilter(),
                     const SizedBox(height: 20),
 
-                    // === DRAG & DROP SECTIONS ===
+                    // SECTIONS (todo / in progress / done)
                     _buildDragTargetSection("To-Do", TaskStatus.todo, mainBlue),
                     _buildDragTargetSection(
                         "In Progress", TaskStatus.inProgress, softOrange),
-                    _buildDragTargetSection("Done", TaskStatus.done, doneGreen),
+                    _buildDragTargetSection(
+                        "Done", TaskStatus.done, doneGreen),
                   ],
                 ),
               ),
@@ -355,9 +428,9 @@ class _TaskDashboardState extends State<TaskDashboard>
     );
   }
 
-  // ================================
-  // 🔹 FILTER BAR
-  // ================================
+  // ----------------------------------------
+  // PRIORITY FILTER
+  // ----------------------------------------
   Widget _priorityFilter() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -393,11 +466,12 @@ class _TaskDashboardState extends State<TaskDashboard>
     );
   }
 
-  // ===== SECTION DRAG & DROP =====
+  // ----------------------------------------
+  // DRAG & DROP SECTIONS
+  // ----------------------------------------
   Widget _buildDragTargetSection(
       String title, TaskStatus status, Color color) {
 
-    // 🔥 Ajout du filtre de priorité
     final list = tasks.where((t) {
       final matchesStatus = t.status == status;
       final matchesPriority = _selectedPriorityFilter == null ||
@@ -445,8 +519,10 @@ class _TaskDashboardState extends State<TaskDashboard>
               if (list.isEmpty)
                 Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: Text("No tasks yet.",
-                      style: TextStyle(color: Colors.grey.shade500)),
+                  child: Text(
+                    "No tasks yet.",
+                    style: TextStyle(color: Colors.grey.shade500),
+                  ),
                 )
               else
                 Column(
@@ -483,7 +559,9 @@ class _TaskDashboardState extends State<TaskDashboard>
     );
   }
 
-  // ===== TASK CARD =====
+  // ----------------------------------------
+  //   TASK CARD
+  // ----------------------------------------
   Widget _taskCard(Task t, Color color, {bool isDragging = false}) {
     final isUrgent =
         t.date.difference(DateTime.now()).inDays <= 1 &&
@@ -520,6 +598,7 @@ class _TaskDashboardState extends State<TaskDashboard>
             ),
           ),
           const SizedBox(width: 10),
+
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -531,19 +610,64 @@ class _TaskDashboardState extends State<TaskDashboard>
                         fontSize: 15)),
                 const SizedBox(height: 4),
 
-                // 🔥 Correction : éviter afficher "" vide
                 if (t.description.isNotEmpty)
                   Text(
                     t.description,
-                    style: TextStyle(
-                        color: Colors.grey.shade700, fontSize: 13),
+                    style:
+                    TextStyle(color: Colors.grey.shade700, fontSize: 13),
                   ),
               ],
             ),
           ),
+
+          // -------------------
+          //   SMALL BUTTONS
+          // -------------------
+          Row(
+            children: [
+              // EDIT
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.blueAccent.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 36,
+                    minHeight: 36,
+                  ),
+                  icon: const Icon(Icons.edit, size: 18, color: Colors.blueAccent),
+                  onPressed: () => _editTask(t),
+                ),
+              ),
+              const SizedBox(width: 6),
+
+              // DELETE
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.redAccent.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 36,
+                    minHeight: 36,
+                  ),
+                  icon: const Icon(Icons.delete, size: 18, color: Colors.redAccent),
+                  onPressed: () => _confirmDelete(t),
+                ),
+              ),
+            ],
+          ),
+
           if (isUrgent)
-            const Icon(Icons.warning_amber_rounded,
-                color: Colors.redAccent, size: 22),
+            const Padding(
+              padding: EdgeInsets.only(left: 8),
+              child: Icon(Icons.warning_amber_rounded,
+                  color: Colors.redAccent, size: 22),
+            ),
         ],
       ),
     );

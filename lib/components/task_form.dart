@@ -11,11 +11,17 @@ import '../services/database_helper.dart';
 
 class TaskForm extends StatefulWidget {
   final DateTime selectedDate;
-  final Task? taskToEdit; // ✅ si non nul, on est en mode édition
+
+  /// 🔥 Maintenant compatible avec Dashboard
+  final Function(Task) onSave;
+
+  /// Si non nul → mode édition
+  final Task? taskToEdit;
 
   const TaskForm({
     super.key,
     required this.selectedDate,
+    required this.onSave,
     this.taskToEdit,
   });
 
@@ -23,15 +29,18 @@ class TaskForm extends StatefulWidget {
   State<TaskForm> createState() => _TaskFormState();
 }
 
-class _TaskFormState extends State<TaskForm> with SingleTickerProviderStateMixin {
+class _TaskFormState extends State<TaskForm>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
 
   DateTime? _date;
   TimeOfDay? _startTime;
+
   bool _isHighPriority = false;
   String? _selectedCategory;
+
   String _selectedCountry = "Tunisia";
   String _countryCode = "TN";
 
@@ -49,261 +58,171 @@ class _TaskFormState extends State<TaskForm> with SingleTickerProviderStateMixin
   @override
   void initState() {
     super.initState();
-    _animController =
-        AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
-    _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeIn);
+
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    _fadeAnim =
+        CurvedAnimation(parent: _animController, curve: Curves.easeIn);
+
     _loadWeatherData();
 
-    // ✅ Pré-remplir si édition
+    // --------------------------------
+    // 🔥 MODE ÉDITION
+    // --------------------------------
     if (widget.taskToEdit != null) {
       final t = widget.taskToEdit!;
+
       _titleController.text = t.title;
       _descriptionController.text = t.description;
       _selectedCategory = t.category;
+
       _date = t.date;
+
       if (t.startTime != null) {
-        final parts = t.startTime!.split(':');
+        final parts = t.startTime!.split(":");
         _startTime = TimeOfDay(
           hour: int.parse(parts[0]),
           minute: int.parse(parts[1]),
         );
       }
+
+      _isHighPriority = t.priority == TaskPriority.high;
+    } else {
+      // Mode création
+      _date = widget.selectedDate;
     }
   }
 
-  // 🌦️ MÉTÉO CONTEXTUELLE
+  // -------------------------------------------------------
+  // 🌤 MÉTÉO CONTEXTUELLE
+  // -------------------------------------------------------
   Future<void> _loadWeatherData() async {
     try {
       final apiKey = dotenv.env['OPENWEATHER_API_KEY'];
+
+      if (apiKey == null) return;
+
       final url =
           "https://api.openweathermap.org/data/2.5/weather?q=$_selectedCountry&appid=$apiKey&units=metric";
+
       final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final condition = data['weather'][0]['main'] ?? "Clear";
+
+        final cond = data['weather'][0]['main'] ?? "Clear";
         final temp = data['main']['temp']?.toDouble() ?? 0.0;
 
         setState(() {
           _temperature = temp;
-          _weatherCondition = condition;
+          _weatherCondition = cond;
 
-          if (condition.contains("Rain")) {
-            _weatherTip = "🌧️ It’s raining — try planning an indoor task today.";
-          } else if (condition.contains("Clear")) {
-            _weatherTip = "☀️ Perfect sunny day — go outside and accomplish your goals!";
-          } else if (condition.contains("Cloud")) {
-            _weatherTip = "☁️ Cloudy sky — calm moment for planning or focus work.";
-          } else if (condition.contains("Snow")) {
-            _weatherTip = "❄️ Cozy day — warm tasks like reading or coding at home.";
-          } else if (condition.contains("Thunderstorm")) {
-            _weatherTip = "⛈️ Stay safe — great time for online or indoor projects.";
-          } else if (condition.contains("Mist") || condition.contains("Fog")) {
-            _weatherTip = "🌫️ Misty weather — ideal for reflection or organization.";
+          if (cond.contains("Rain")) {
+            _weatherTip = "🌧️ It’s raining — stay productive indoors.";
+          } else if (cond.contains("Clear")) {
+            _weatherTip = "☀️ Perfect sunny day for motivation!";
+          } else if (cond.contains("Cloud")) {
+            _weatherTip = "☁️ Calm sky — ideal for focus.";
+          } else if (cond.contains("Snow")) {
+            _weatherTip = "❄️ Cozy vibe — perfect for creative tasks.";
           } else {
-            _weatherTip = "🌤️ Balanced weather — free choice for your next task.";
+            _weatherTip = "🌤️ Balanced weather — free choice!";
           }
         });
 
         _animController.forward(from: 0);
       }
     } catch (e) {
-      debugPrint("Weather load error: $e");
+      debugPrint("Weather error: $e");
     }
   }
 
-  void _pickCountry() {
-    showCountryPicker(
-      context: context,
-      showPhoneCode: false,
-      onSelect: (country) {
-        setState(() {
-          _selectedCountry = country.name;
-          _countryCode = country.countryCode;
-        });
-        _loadWeatherData();
-      },
-    );
-  }
-
-  // 🧩 VALIDATION DES CHAMPS
-  String? _validateTitle(String? value) {
-    if (value == null || value.trim().isEmpty) return "Please enter a title.";
-    if (value.length < 3) return "Too short — minimum 3 letters.";
-    if (value.length > 30) return "Too long — max 30 letters.";
-    if (!RegExp(r'^[a-zA-Z0-9\s]+$').hasMatch(value)) {
-      return "Invalid characters — letters only please.";
-    }
-    return null;
-  }
-
-  String? _validateDescription(String? value) {
-    if (value == null || value.isEmpty) return "Please describe your task briefly.";
-    if (value.length < 5) return "Description too short.";
-    if (value.length > 200) return "Too long — max 200 characters.";
-    return null;
-  }
-
+  // -------------------------------------------------------
+  // 📆 CHOIX DATE
+  // -------------------------------------------------------
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
       initialDate: _date ?? widget.selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(primary: mainBlue),
-        ),
-        child: child!,
-      ),
     );
-    if (picked != null) setState(() => _date = picked);
+
+    if (picked != null) {
+      setState(() => _date = picked);
+    }
   }
 
+  // -------------------------------------------------------
+  // ⏰ CHOIX HEURE
+  // -------------------------------------------------------
   Future<void> _pickTime() async {
     final picked = await showTimePicker(
       context: context,
       initialTime: _startTime ?? const TimeOfDay(hour: 9, minute: 0),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(primary: mainBlue),
-        ),
-        child: child!,
-      ),
     );
-    if (picked != null) setState(() => _startTime = picked);
-  }
 
-  // 💾 SAUVEGARDE / MISE À JOUR
-  Future<void> _saveTask() async {
-    if (_formKey.currentState!.validate()) {
-      if (_date == null) {
-        _showError("Please choose a date first.");
-        return;
-      }
-
-      final db = DatabaseHelper();
-
-      if (widget.taskToEdit != null) {
-        // 🔄 Mise à jour
-        final updatedTask = Task(
-          id: widget.taskToEdit!.id,
-          title: _titleController.text,
-          description: _descriptionController.text,
-          category: _selectedCategory ?? "General",
-          date: _date!,
-          startTime: "${_startTime?.hour ?? 0}:${_startTime?.minute ?? 0}",
-          endTime: "${(_startTime?.hour ?? 0) + 1}:${_startTime?.minute ?? 0}",
-          status: widget.taskToEdit!.status,
-        );
-        await db.updateTask(updatedTask);
-        HapticFeedback.mediumImpact();
-        _showSuccessPopup(isUpdate: true);
-      } else {
-        // ➕ Création
-        final newTask = Task(
-          title: _titleController.text,
-          description: _descriptionController.text,
-          category: _selectedCategory ?? "General",
-          date: _date!,
-          startTime: "${_startTime?.hour ?? 0}:${_startTime?.minute ?? 0}",
-          endTime: "${(_startTime?.hour ?? 0) + 1}:${_startTime?.minute ?? 0}",
-          status: TaskStatus.todo,
-        );
-        await db.insertTask(newTask);
-        HapticFeedback.mediumImpact();
-        _showSuccessPopup(isUpdate: false);
-      }
+    if (picked != null) {
+      setState(() => _startTime = picked);
     }
   }
 
-  // ✅ POPUP DE SUCCÈS
-  void _showSuccessPopup({bool isUpdate = false}) {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) => Center(
-        child: Material(
-          color: Colors.transparent,
-          child: AnimatedScale(
-            scale: 1,
-            duration: const Duration(milliseconds: 400),
-            child: Container(
-              width: 300,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.95),
-                borderRadius: BorderRadius.circular(25),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 15,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    isUpdate ? Icons.edit_rounded : Icons.check_circle,
-                    color: isUpdate ? Colors.orangeAccent : Colors.green,
-                    size: 60,
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    isUpdate
-                        ? "Task Updated Successfully!"
-                        : "Task Created Successfully!",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                      fontSize: 16,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 25),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: mainBlue,
-                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.pop(context);
-                    },
-                    child: const Text("Continue",
-                        style: TextStyle(color: Colors.white)),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
+  // -------------------------------------------------------
+  // 🔥 SAUVER / UPDATE (unifiée)
+  // -------------------------------------------------------
+  void _saveTask() {
+    if (!_formKey.currentState!.validate()) return;
+
+    if (_date == null) {
+      _showError("Choose a date first.");
+      return;
+    }
+
+    final newTask = Task(
+      id: widget.taskToEdit?.id,
+      title: _titleController.text.trim(),
+      description: _descriptionController.text.trim(),
+      category: _selectedCategory ?? "General",
+      date: _date!,
+      status: widget.taskToEdit?.status ?? TaskStatus.todo,
+      priority: _isHighPriority ? TaskPriority.high : TaskPriority.normal,
+      startTime:
+      _startTime == null ? null : "${_startTime!.hour}:${_startTime!.minute}",
+      endTime: null,
     );
+
+    widget.onSave(newTask); // 🔥 Retourne la tâche au Dashboard
+    Navigator.pop(context);
   }
 
   void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: Colors.redAccent),
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: Colors.redAccent,
+      ),
     );
   }
 
-  // 🧱 UI BUILD
+  // -------------------------------------------------------
+  // 🖼 UI
+  // -------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.taskToEdit != null;
+
     return Scaffold(
       backgroundColor: softWhite,
       appBar: AppBar(
-        title: Text(isEditing ? "Edit Task" : "Create Task"),
-        centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.white,
-        foregroundColor: mainBlue,
+        title: Text(isEditing ? "Edit Task" : "Create Task",
+            style:
+            TextStyle(color: mainBlue, fontWeight: FontWeight.bold)),
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -312,76 +231,48 @@ class _TaskFormState extends State<TaskForm> with SingleTickerProviderStateMixin
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildWeatherCard(),
+              _weatherCard(),
               const SizedBox(height: 20),
+
               Form(
                 key: _formKey,
-                autovalidateMode: AutovalidateMode.onUserInteraction,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _inputField(
                       controller: _titleController,
                       label: "Task title",
                       icon: Icons.edit,
-                      validator: _validateTitle,
+                      validator: (v) =>
+                      v == null || v.isEmpty ? "Enter a title" : null,
                     ),
                     const SizedBox(height: 20),
+
                     _inputField(
                       controller: _descriptionController,
                       label: "Task description",
-                      icon: Icons.description_outlined,
-                      validator: _validateDescription,
+                      icon: Icons.description,
+                      validator: (v) =>
+                      v == null || v.isEmpty ? "Enter a description" : null,
                       maxLines: 3,
                     ),
+
                     const SizedBox(height: 25),
-                    Text("Category",
-                        style: TextStyle(
-                            color: mainBlue,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14)),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        "💻 Project",
-                        "📅 Exam",
-                        "🏋️ Sport",
-                        "🎯 Personal Goal",
-                        "🧠 Revision",
-                        "📝 Notes"
-                      ].map((cat) {
-                        final selected = cat == _selectedCategory;
-                        return ChoiceChip(
-                          label: Text(cat,
-                              style: TextStyle(
-                                  color: selected ? Colors.white : mainBlue)),
-                          selected: selected,
-                          selectedColor: mainBlue,
-                          backgroundColor: Colors.grey.shade200,
-                          onSelected: (_) =>
-                              setState(() => _selectedCategory = cat),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 30),
+                    _categoryChips(),
+
+                    const SizedBox(height: 25),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _pickerButton(
-                            "Choose date", Icons.calendar_today, _pickDate),
-                        _pickerButton(
-                            "Choose time", Icons.access_time, _pickTime),
+                        _picker("Choose date", Icons.calendar_today, _pickDate),
+                        _picker("Choose time", Icons.access_time, _pickTime),
                       ],
                     ),
-                    const SizedBox(height: 40),
-                    _buildPriorityButton(),
+
                     const SizedBox(height: 30),
-                    Align(
-                      alignment: Alignment.center,
-                      child: _buildCreateButton(isEditing),
-                    ),
+                    _priorityButton(),
+
+                    const SizedBox(height: 35),
+                    _submitButton(isEditing),
                   ],
                 ),
               ),
@@ -392,77 +283,73 @@ class _TaskFormState extends State<TaskForm> with SingleTickerProviderStateMixin
     );
   }
 
-  // 🎨 WIDGETS DESIGN
-
-  Widget _buildWeatherCard() {
-    final gradientColors = _weatherCondition == "Rain"
-        ? [const Color(0xFF1E293B), const Color(0xFF334155)]
-        : [const Color(0xFF0F172A), const Color(0xFF1E3A8A)];
-
-    return GestureDetector(
-      onTap: _pickCountry,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 400),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(colors: gradientColors),
-          borderRadius: BorderRadius.circular(18),
+  // -------------------------------------------------------
+  // 🎨 UI WIDGETS
+  // -------------------------------------------------------
+  Widget _weatherCard() {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 400),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0F172A), Color(0xFF1E3A8A)],
         ),
-        child: Column(
-          children: [
-            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              CountryFlag.fromCountryCode(_countryCode, height: 22, width: 32),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CountryFlag.fromCountryCode(_countryCode,
+                  height: 22, width: 32),
               const SizedBox(width: 8),
               Text(_selectedCountry,
                   style: const TextStyle(
                       color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16)),
-              const Icon(Icons.keyboard_arrow_down_rounded,
-                  color: Colors.white),
-            ]),
-            const SizedBox(height: 10),
-            if (_temperature != null)
-              Text("${_temperature!.toStringAsFixed(1)}°C • ${_weatherCondition ?? ''}",
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18))
-            else
-              const CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-            if (_weatherTip != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  _weatherTip!,
+                      fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (_temperature != null)
+            Text(
+              "${_temperature!.toStringAsFixed(1)}°C • ${_weatherCondition ?? ''}",
+              style: const TextStyle(
+                  fontSize: 18,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold),
+            ),
+          if (_weatherTip != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(_weatherTip!,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 13,
-                      fontStyle: FontStyle.italic),
-                ),
-              ),
-          ],
-        ),
+                  style:
+                  const TextStyle(color: Colors.white70, fontSize: 13)),
+            ),
+        ],
       ),
     );
   }
 
-  Widget _pickerButton(String label, IconData icon, VoidCallback onTap) {
+  Widget _picker(String label, IconData icon, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: 150,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
         decoration: BoxDecoration(
-          color: Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.grey.shade200,
         ),
-        child: Row(children: [
-          Icon(icon, color: mainBlue, size: 18),
-          const SizedBox(width: 8),
-          Expanded(child: Text(label, style: TextStyle(color: mainBlue))),
-        ]),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: mainBlue),
+            const SizedBox(width: 8),
+            Expanded(
+                child: Text(label, style: TextStyle(color: mainBlue))),
+          ],
+        ),
       ),
     );
   }
@@ -480,63 +367,78 @@ class _TaskFormState extends State<TaskForm> with SingleTickerProviderStateMixin
       maxLines: maxLines,
       decoration: InputDecoration(
         prefixIcon: Icon(icon, color: mainBlue),
-        hintText: label,
         filled: true,
         fillColor: Colors.grey.shade100,
-        errorStyle: const TextStyle(color: Colors.redAccent, fontSize: 11),
-        contentPadding:
-        const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-        enabledBorder: OutlineInputBorder(
+        hintText: label,
+        border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide(color: accent, width: 1.5),
         ),
       ),
     );
   }
 
-  Widget _buildPriorityButton() {
+  Widget _categoryChips() {
+    final categories = [
+      "💻 Project",
+      "📅 Exam",
+      "🏋️ Sport",
+      "🎯 Personal Goal",
+      "🧠 Revision",
+      "📝 Notes"
+    ];
+
+    return Wrap(
+      spacing: 8,
+      children: categories.map((cat) {
+        final selected = cat == _selectedCategory;
+        return ChoiceChip(
+          label: Text(cat,
+              style: TextStyle(
+                  color: selected ? Colors.white : mainBlue)),
+          selected: selected,
+          selectedColor: mainBlue,
+          onSelected: (_) => setState(() => _selectedCategory = cat),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _priorityButton() {
     return GestureDetector(
       onTap: () => setState(() => _isHighPriority = !_isHighPriority),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        width: double.infinity,
         height: 50,
         alignment: Alignment.center,
         decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
           gradient: LinearGradient(
             colors: _isHighPriority
                 ? [Colors.redAccent, Colors.orangeAccent]
                 : [mainBlue, accent],
           ),
-          borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           _isHighPriority ? "🔥 High Priority" : "⭐ Normal Priority",
-          style:
-          const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+              color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
     );
   }
 
-  Widget _buildCreateButton(bool isEditing) {
+  Widget _submitButton(bool isEditing) {
     return ElevatedButton.icon(
       onPressed: _saveTask,
       style: ElevatedButton.styleFrom(
         backgroundColor: accent,
-        padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-        elevation: 6,
-        shadowColor: Colors.black26,
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 40),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(25)),
       ),
       icon: Icon(
-        isEditing ? Icons.edit : Icons.check_circle_outline,
-        color: Colors.white,
-      ),
+          isEditing ? Icons.edit : Icons.check_circle,
+          color: Colors.white),
       label: Text(
         isEditing ? "Update Task" : "Create Task",
         style: const TextStyle(

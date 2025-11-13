@@ -11,7 +11,7 @@ class DB {
     }
     _db = await openDatabase(
       join(await getDatabasesPath(), 'finance_dashboard.db'),
-      version: 3,
+      version: 1 ,
       onCreate: (db, version) async {
         await db.execute(
           'CREATE TABLE notes(id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, content TEXT, createdAt TEXT, updatedAt TEXT, categoryId INTEGER, isImportant INTEGER, isArchived INTEGER, isPinned INTEGER)',
@@ -19,7 +19,6 @@ class DB {
         await db.execute(
           'CREATE TABLE categoriesNote(id INTEGER PRIMARY KEY AUTOINCREMENT, nom TEXT, couleurHex TEXT)',
         );
-        // Création de la table goals pour les Financial Goals (stocke aussi le JSON complet en colonne data)
         await db.execute('''
           CREATE TABLE goals (
             id TEXT PRIMARY KEY,
@@ -35,10 +34,25 @@ class DB {
             data TEXT NOT NULL
           )
         ''');
+        // Nouvelle table tasks (issue de DatabaseHelper)
+        await db.execute('''
+          CREATE TABLE tasks(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT,
+            description TEXT,
+            category TEXT,
+            date TEXT,
+            startTime TEXT,
+            endTime TEXT,
+            status TEXT,
+            priority TEXT
+          )
+        ''');
+        // Seed des catégories notes
         await db.insert('categoriesNote', {'nom': 'Personal', 'couleurHex': '#2196F3'});
         await db.insert('categoriesNote', {'nom': 'Work', 'couleurHex': '#FF9800'});
         await db.insert('categoriesNote', {'nom': 'Important', 'couleurHex': '#F44336'});
-        // Peupler la table goals si vide lors de la création
+        // Seed goals
         await _seedGoals(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
@@ -46,14 +60,12 @@ class DB {
           await db.execute(
             'CREATE TABLE IF NOT EXISTS categoriesNote(id INTEGER PRIMARY KEY AUTOINCREMENT, nom TEXT, couleurHex TEXT)',
           );
-          // Peupler si vide (catégories)
           final count = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM categoriesNote')) ?? 0;
           if (count == 0) {
             await db.insert('categoriesNote', {'nom': 'Personal', 'couleurHex': '#2196F3'});
             await db.insert('categoriesNote', {'nom': 'Work', 'couleurHex': '#FF9800'});
             await db.insert('categoriesNote', {'nom': 'Important', 'couleurHex': '#F44336'});
           }
-          // Migration: créer la table goals si elle n'existe pas
           await db.execute('''
             CREATE TABLE IF NOT EXISTS goals (
               id TEXT PRIMARY KEY,
@@ -71,10 +83,33 @@ class DB {
           ''');
         }
         if (oldVersion < 3) {
-          // Peupler si vide (goals)
           final countGoals = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM goals')) ?? 0;
           if (countGoals == 0) {
             await _seedGoals(db);
+          }
+        }
+        if (oldVersion < 4) {
+          // Création de la table tasks si elle n'existe pas
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS tasks(
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              title TEXT,
+              description TEXT,
+              category TEXT,
+              date TEXT,
+              startTime TEXT,
+              endTime TEXT,
+              status TEXT,
+              priority TEXT
+            )
+          ''');
+          // Vérifier présence de la colonne priority (pour anciennes installations de tasks sans priority)
+          final columns = await db.rawQuery("PRAGMA table_info(tasks)");
+          final hasPriority = columns.any((c) => c['name'] == 'priority');
+          if (!hasPriority) {
+            try {
+              await db.execute("ALTER TABLE tasks ADD COLUMN priority TEXT DEFAULT 'normal'");
+            } catch (_) {}
           }
         }
       },
@@ -316,3 +351,4 @@ class DB {
     );
   }
 }
+

@@ -35,11 +35,11 @@ class _CalendarPageState extends State<CalendarPage> {
   Future<void> _loadTasks() async {
     final db = DatabaseHelper();
     final tasks = await db.getTasks();
-    setState(() => _tasks = tasks);
+    if (mounted) setState(() => _tasks = tasks);
   }
 
   // ================================
-  // 🔥 Fonction principale du clic
+  // 🔥 Sélection d’un jour
   // ================================
   Future<void> _onDaySelected(DateTime day) async {
     setState(() => _selectedDay = day);
@@ -51,7 +51,7 @@ class _CalendarPageState extends State<CalendarPage> {
         t.date.month == day.month &&
         t.date.day == day.day).toList();
 
-    // Aucune tâche → popup
+    // Aucune tâche
     if (tasksForDay.isEmpty) {
       final suggestion = await BoredService().getSuggestion();
       final message = suggestion?["activity"] ??
@@ -61,7 +61,7 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   // ======================
-  // ✨ Popup moderne
+  // ✨ Popup : no tasks
   // ======================
   void _showNoTaskPopup(String message) {
     showDialog(
@@ -117,21 +117,27 @@ class _CalendarPageState extends State<CalendarPage> {
                   children: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text(
-                        "Close",
-                        style: TextStyle(fontSize: 15),
-                      ),
+                      child: const Text("Close",
+                          style: TextStyle(fontSize: 15)),
                     ),
+
                     ElevatedButton(
                       onPressed: () {
                         Navigator.pop(context);
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                TaskForm(selectedDate: _selectedDay),
+                            builder: (_) => TaskForm(
+                              selectedDate: _selectedDay,
+                              onSave: (task) async {
+                                final db = DatabaseHelper();
+                                await db.insertTask(task);
+                                Navigator.pop(context);
+                                _loadTasks();
+                              },
+                            ),
                           ),
-                        ).then((_) => _loadTasks());
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: mainBlue,
@@ -161,10 +167,12 @@ class _CalendarPageState extends State<CalendarPage> {
   // ======================
   @override
   Widget build(BuildContext context) {
-    final days = List.generate(7, (i) => DateTime.now().add(Duration(days: i)));
+    final days =
+    List.generate(7, (i) => DateTime.now().add(Duration(days: i)));
 
     return Scaffold(
       backgroundColor: Colors.white,
+
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -180,6 +188,10 @@ class _CalendarPageState extends State<CalendarPage> {
             fontWeight: FontWeight.bold,
           ),
         ),
+
+        // -------------------
+        // BUTTON ADD TASK
+        // -------------------
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 14),
@@ -188,10 +200,17 @@ class _CalendarPageState extends State<CalendarPage> {
                 await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => TaskForm(selectedDate: _selectedDay),
+                    builder: (_) => TaskForm(
+                      selectedDate: _selectedDay,
+                      onSave: (task) async {
+                        final db = DatabaseHelper();
+                        await db.insertTask(task);
+                        Navigator.pop(context);
+                        _loadTasks();
+                      },
+                    ),
                   ),
                 );
-                _loadTasks();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: mainBlue,
@@ -210,10 +229,13 @@ class _CalendarPageState extends State<CalendarPage> {
         ],
       ),
 
+      // -----------------------
+      // BODY
+      // -----------------------
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Message
+          // Greeting
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18),
             child: Text(
@@ -240,7 +262,7 @@ class _CalendarPageState extends State<CalendarPage> {
                         d.month == _selectedDay.month;
 
                 return GestureDetector(
-                  onTap: () => _onDaySelected(d), // <= IMPORTANT
+                  onTap: () => _onDaySelected(d),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     margin: const EdgeInsets.symmetric(horizontal: 6),
@@ -287,7 +309,7 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   // =================================
-  // TIMELINE (inchangé)
+  // TIMELINE
   // =================================
   Widget _buildTimeline() {
     final startHour = 8;
@@ -310,6 +332,7 @@ class _CalendarPageState extends State<CalendarPage> {
       itemCount: (endHour - startHour) + 1,
       itemBuilder: (context, i) {
         final hour = startHour + i;
+
         final timeLabel =
             "${hour > 12 ? hour - 12 : hour} ${hour >= 12 ? "PM" : "AM"}";
 
@@ -348,6 +371,7 @@ class _CalendarPageState extends State<CalendarPage> {
               Column(
                 children: tasksAtThisHour.map((t) {
                   final color = colors[Random().nextInt(colors.length)];
+
                   return Container(
                     margin: const EdgeInsets.only(bottom: 16),
                     padding: const EdgeInsets.all(14),
@@ -371,24 +395,29 @@ class _CalendarPageState extends State<CalendarPage> {
                               fontWeight: FontWeight.bold, fontSize: 15),
                         ),
                         const SizedBox(height: 4),
+
                         if (t.description.isNotEmpty)
                           Text(
                             t.description,
                             style: const TextStyle(
                                 color: Colors.black54, fontSize: 13),
                           ),
+
                         const SizedBox(height: 6),
+
                         Row(
                           children: [
                             const Icon(Icons.access_time_rounded,
                                 size: 14, color: Colors.black54),
                             const SizedBox(width: 4),
                             Text(
-                              "${t.startTime} - ${t.endTime}",
+                              "${t.startTime ?? ""}",
                               style: const TextStyle(
                                   fontSize: 12, color: Colors.black54),
                             ),
+
                             const Spacer(),
+
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 3),

@@ -23,7 +23,7 @@ class _ProfilePageState extends State<ProfilePage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this); // ajouté onglet Notes
+    _tabController = TabController(length: 3, vsync: this); // Goals, Notes, To-Do
     _loadGoalsSummary();
     _loadNotesSummary();
   }
@@ -179,8 +179,8 @@ class _ProfilePageState extends State<ProfilePage>
               controller: _tabController,
               children: [
                 _buildGoalsTab(),
+                _buildNotesTab(), // ordre aligné
                 _buildTodosTab(),
-                _buildNotesTab(), // nouvel onglet
               ],
             ),
           ),
@@ -193,7 +193,6 @@ class _ProfilePageState extends State<ProfilePage>
     final progressLabel = (_overallProgress).toStringAsFixed(0) + '%';
     return GestureDetector(
       onTap: () async {
-        // Navigate and refresh summary when returning
         await Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const GoalsPage()),
@@ -242,15 +241,14 @@ class _ProfilePageState extends State<ProfilePage>
               ),
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               "Tap to view and manage your goals",
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 color: Color(0xFF6B7280),
               ),
             ),
             const SizedBox(height: 20),
-            // Dynamic summary
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -423,35 +421,25 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
-  // ---------------- TODO & NOTES ----------------
-  Widget _buildTodosTab() {
-    return const Padding(
-      padding: EdgeInsets.all(20),
-      child: TodoList(),
-    );
-  }
-
-
-
-  // ---------------- BUILD ----------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              _buildHeader(),
-              const SizedBox(height: 24),
-
-              // Tabbed Content
-              _buildTabbedContent(),
-              const SizedBox(height: 100), // Space for bottom nav
-            ],
+      body: SafeArea(
+        bottom: false,
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(),
+                const SizedBox(height: 24),
+                _buildTabbedContent(),
+                const SizedBox(height: 100), // espace pour la bottom nav
+              ],
+            ),
           ),
         ),
       ),
@@ -473,58 +461,34 @@ class _ProfilePageState extends State<ProfilePage>
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.home, color: Color(0xFF4A90E2)),
+                onPressed: () {
+                  setState(() => _tabController.index = 0); // Goals
+                },
+                icon: Icon(
+                  Icons.flag,
+                  color: _tabController.index == 0 ? const Color(0xFF4A90E2) : const Color(0xFF6B7280),
+                ),
               ),
               IconButton(
                 onPressed: () {
-                  setState(() {
-                    _tabController.index = 1; // To-Do
-                  });
+                  setState(() => _tabController.index = 1); // Notes
                 },
-                icon: const Icon(Icons.checklist, color: Color(0xFF6B7280)),
-              ),
-              const SizedBox(width: 48),
-              IconButton(
-                onPressed: () {
-                  setState(() {
-                    _tabController.index = 0; // Goals
-                  });
-                },
-                icon: const Icon(Icons.flag, color: Color(0xFF6B7280)),
+                icon: Icon(
+                  Icons.note,
+                  color: _tabController.index == 1 ? const Color(0xFF4A90E2) : const Color(0xFF6B7280),
+                ),
               ),
               IconButton(
                 onPressed: () {
-                  setState(() {
-                    _tabController.index = 2; // Notes
-                  });
+                  setState(() => _tabController.index = 2); // To-Do
                 },
-                icon: const Icon(Icons.note, color: Color(0xFF6B7280)),
+                icon: Icon(
+                  Icons.checklist,
+                  color: _tabController.index == 2 ? const Color(0xFF4A90E2) : const Color(0xFF6B7280),
+                ),
               ),
             ],
           ),
-        ),
-      body: SafeArea(
-        bottom: false,
-        child: Stack(
-          children: [
-            SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(),
-                    const SizedBox(height: 24),
-                    _buildTabbedContent(),
-                    const SizedBox(height: 16),
-                  ],
-                ),
-              ),
-            ),
-
-          ],
         ),
       ),
     );
