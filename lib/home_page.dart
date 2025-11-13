@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'pages/analytics_page.dart';
-import 'pages/transactions_page_goal.dart';
+import 'pages/transactions_page.dart';
 import 'pages/profile_page.dart';
 import 'components/balance_card.dart';
 import 'components/portfolio_header.dart';
@@ -32,7 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _pages = const [
     HomePage(),
     AnalyticsPage(),
-    TransactionsPageGoal(),
+    TransactionsPage(),
     ProfilePage(),
     NewsPage(),
     CryptoPage(),

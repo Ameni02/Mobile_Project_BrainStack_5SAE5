@@ -1,3 +1,6 @@
+import './goals_data.dart';
+import './goal_model.dart';
+
 class TodoItem {
   final int id;
   final String title;
@@ -40,6 +43,9 @@ class ProfileData {
     ),
   ];
 
-
-
+  // --- Ajouts pour compatibilité avec ExpenseChatbot ---
+  // Importés dynamiquement via GoalsData.
+  // Fournit une API de façade pour éviter de toucher aux composants existants.
+  static List<Goal> get objectives => GoalsData.goals;
+  static double get overallProgress => GoalsData.overallProgress;
 }

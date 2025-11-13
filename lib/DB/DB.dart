@@ -11,7 +11,7 @@ class DB {
     }
     _db = await openDatabase(
       join(await getDatabasesPath(), 'finance_dashboard.db'),
-      version: 1 ,
+      version: 5, // bumped version pour inclure transactions
       onCreate: (db, version) async {
         await db.execute(
           'CREATE TABLE notes(id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, content TEXT, createdAt TEXT, updatedAt TEXT, categoryId INTEGER, isImportant INTEGER, isArchived INTEGER, isPinned INTEGER)',
@@ -34,7 +34,6 @@ class DB {
             data TEXT NOT NULL
           )
         ''');
-        // Nouvelle table tasks (issue de DatabaseHelper)
         await db.execute('''
           CREATE TABLE tasks(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,6 +45,20 @@ class DB {
             endTime TEXT,
             status TEXT,
             priority TEXT
+          )
+        ''');
+        // Nouvelle table transactions
+        await db.execute('''
+          CREATE TABLE transactions (
+            id INTEGER PRIMARY KEY,
+            name TEXT,
+            category TEXT,
+            date TEXT,
+            amount REAL,
+            icon INTEGER,
+            color TEXT,
+            type TEXT,
+            extraFields TEXT
           )
         ''');
         // Seed des catégories notes
@@ -84,9 +97,9 @@ class DB {
         }
         if (oldVersion < 3) {
           final countGoals = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM goals')) ?? 0;
-          if (countGoals == 0) {
-            await _seedGoals(db);
-          }
+            if (countGoals == 0) {
+              await _seedGoals(db);
+            }
         }
         if (oldVersion < 4) {
           // Création de la table tasks si elle n'existe pas
@@ -111,6 +124,22 @@ class DB {
               await db.execute("ALTER TABLE tasks ADD COLUMN priority TEXT DEFAULT 'normal'");
             } catch (_) {}
           }
+        }
+        if (oldVersion < 5) {
+          // Ajout table transactions
+            await db.execute('''
+              CREATE TABLE IF NOT EXISTS transactions (
+                id INTEGER PRIMARY KEY,
+                name TEXT,
+                category TEXT,
+                date TEXT,
+                amount REAL,
+                icon INTEGER,
+                color TEXT,
+                type TEXT,
+                extraFields TEXT
+              )
+            ''');
         }
       },
     );
@@ -351,4 +380,3 @@ class DB {
     );
   }
 }
-

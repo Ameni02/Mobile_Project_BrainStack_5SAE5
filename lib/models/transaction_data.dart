@@ -1,8 +1,8 @@
 // lib/models/transaction_data.dart
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
 import 'dart:convert';
+import '../DB/DB.dart'; // utilisation de la base centralisée
 
 enum TransactionType { expense, revenue }
 
@@ -63,46 +63,21 @@ class Transaction {
 }
 
 class TransactionData {
-  static Database? _db;
+  // Suppression de la gestion locale _db, on passe par DB.db
   static final List<Transaction> expenseTransactions = [];
   static final List<Transaction> revenueTransactions = [];
 
   // Initialize DB (call once in main)
   static Future<void> initDb() async {
-    if (_db != null) return;
-
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'transactions.db');
-
-    _db = await openDatabase(
-      path,
-      version: 1,
-      onCreate: (db, version) async {
-        await db.execute('''
-          CREATE TABLE transactions (
-            id INTEGER PRIMARY KEY,
-            name TEXT,
-            category TEXT,
-            date TEXT,
-            amount REAL,
-            icon INTEGER,
-            color TEXT,
-            type TEXT,
-            extraFields TEXT
-          )
-        ''');
-      },
-    );
-
+    await DB.db; // assure l'ouverture de la base centrale
     await loadTransactions();
   }
 
   // Load all transactions from DB into lists
   static Future<void> loadTransactions() async {
-    if (_db == null) await initDb();
-
+    final database = await DB.db;
     final List<Map<String, dynamic>> maps =
-    await _db!.query('transactions', orderBy: 'id DESC');
+        await database.query('transactions', orderBy: 'id DESC');
 
     expenseTransactions.clear();
     revenueTransactions.clear();
@@ -121,9 +96,9 @@ class TransactionData {
 
   // Add transaction to DB and in-memory list
   static Future<void> addTransaction(Transaction transaction) async {
-    if (_db == null) await initDb();
+    final database = await DB.db;
 
-    await _db!.insert(
+    await database.insert(
       'transactions',
       transaction.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
@@ -138,9 +113,9 @@ class TransactionData {
 
   // Update transaction
   static Future<void> updateTransaction(Transaction updatedTransaction) async {
-    if (_db == null) await initDb();
+    final database = await DB.db;
 
-    await _db!.update(
+    await database.update(
       'transactions',
       updatedTransaction.toMap(),
       where: 'id = ?',
@@ -158,9 +133,9 @@ class TransactionData {
 
   // Delete by id
   static Future<void> deleteTransaction(int id) async {
-    if (_db == null) await initDb();
+    final database = await DB.db;
 
-    await _db!.delete(
+    await database.delete(
       'transactions',
       where: 'id = ?',
       whereArgs: [id],
@@ -177,9 +152,8 @@ class TransactionData {
 
   // Add static data if DB is empty
   static Future<void> _addStaticDataIfEmpty() async {
-    if (_db == null) await initDb();
-
-    final count = Sqflite.firstIntValue(await _db!.rawQuery('SELECT COUNT(*) FROM transactions')) ?? 0;
+    final database = await DB.db;
+    final count = Sqflite.firstIntValue(await database.rawQuery('SELECT COUNT(*) FROM transactions')) ?? 0;
     if (count == 0) {
       final staticTransactions = [
         Transaction(
@@ -237,8 +211,6 @@ class TransactionData {
       for (var t in staticTransactions) {
         await addTransaction(t);
       }
-    } else {
-      // nothing to do
     }
   }
 
@@ -254,6 +226,12 @@ class TransactionData {
 
   static double get totalRevenue =>
       revenueTransactions.fold(0, (sum, t) => sum + t.amount);
+
+  static int nextId() {
+    final all = [...expenseTransactions, ...revenueTransactions];
+    if (all.isEmpty) return 1;
+    return all.map((t) => t.id).reduce((a, b) => a > b ? a : b) + 1;
+  }
 }
 
 /*class TransactionData {
