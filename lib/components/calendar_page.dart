@@ -23,7 +23,7 @@ class CalendarPage extends StatefulWidget {
 class _CalendarPageState extends State<CalendarPage> {
   late DateTime _selectedDay;
   List<Task> _tasks = [];
-  final Color mainBlue = const Color(0xFF1D2E53);
+  final Color mainBlue = const Color(0xFF4A90E2);
 
   @override
   void initState() {

@@ -614,8 +614,8 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
             label: 'Transactions',
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            label: 'Profile',
+            icon: Icon(Icons.book),
+            label: 'Journal',
           ),
         ],
       ),

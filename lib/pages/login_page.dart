@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../home_page.dart';
+import '../DB/DB.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -21,7 +22,8 @@ class _LoginPageState extends State<LoginPage> {
     await Future.delayed(const Duration(milliseconds: 400));
     final user = _userController.text.trim();
     final pass = _passController.text;
-    if (user == 'Brainstack' && pass == 'admin123*') {
+    final valid = await DB.validateUser(user, pass);
+    if (valid) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const HomeScreen()),
       );
@@ -31,6 +33,14 @@ class _LoginPageState extends State<LoginPage> {
       );
     }
     setState(() => _loading = false);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    DB.db.then((_) {
+      DB.addUser('Ghassen', 'admin123*', fullName: 'Demo Admin', role: 'admin');
+    });
   }
 
   @override
@@ -61,7 +71,7 @@ class _LoginPageState extends State<LoginPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('BrainStack',
+                    const Text('BudMate',
                         style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
                     const Text('Sign in to your account',
@@ -98,7 +108,7 @@ class _LoginPageState extends State<LoginPage> {
                     const SizedBox(height: 8),
                     TextButton(
                       onPressed: () {
-                        _userController.text = 'Brainstack';
+                        _userController.text = 'Ghassen';
                         _passController.text = 'admin123*';
                       },
                       child: const Text('Use demo credentials'),

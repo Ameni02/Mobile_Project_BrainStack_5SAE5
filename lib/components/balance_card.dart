@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import '../models/transaction_data.dart';
+import '../constants/currency.dart';
 
 class BalanceCard extends StatefulWidget {
   const BalanceCard({super.key});
@@ -14,7 +16,7 @@ class _BalanceCardState extends State<BalanceCard> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 230, // 🔹 Augmenté pour éviter l’overflow
+      height: 200,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [AppColors.primary, Color(0xFF1D4ED8)],
@@ -32,7 +34,7 @@ class _BalanceCardState extends State<BalanceCard> {
       ),
       child: Stack(
         children: [
-          // 🔹 Cercles décoratifs en arrière-plan
+          // Background decorative circles
           Positioned(
             right: -30,
             top: -30,
@@ -58,14 +60,13 @@ class _BalanceCardState extends State<BalanceCard> {
             ),
           ),
 
-          // 🔹 Contenu principal
+          // Content
           Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min, // 🔹 Empêche le dépassement vertical
               children: [
-                // 🔸 En-tête avec bouton afficher/masquer
+                // Header with toggle button
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -101,60 +102,22 @@ class _BalanceCardState extends State<BalanceCard> {
                 ),
                 const SizedBox(height: 16),
 
-                // 🔸 Montant du solde
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    _showBalance ? '\$24,582.50' : '••••••',
-                    style: const TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      letterSpacing: -1,
-                    ),
+                // Balance amount
+                Text(
+                  _showBalance ? formatTnd(TransactionData.totalRevenue - TransactionData.totalExpenses) : '••••••',
+                  style: const TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: -1,
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
-                // 🔸 Indicateur de performance
+                // Performance indicator
                 Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.accent,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.trending_up,
-                            color: Colors.white,
-                            size: 16,
-                          ),
-                          SizedBox(width: 6),
-                          Text(
-                            '+12.5%',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                     const SizedBox(width: 12),
-                    const Text(
-                      'vs last month',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
                   ],
                 ),
               ],

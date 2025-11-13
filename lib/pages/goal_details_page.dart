@@ -5,6 +5,7 @@ import '../models/goal_model.dart';
 import '../models/goals_data.dart';
 import '../components/FinancialGoals/add_contribution_dialog.dart';
 import '../components/finance/converted_amount.dart';
+import '../constants/currency.dart';
 
 class GoalDetailsPage extends StatefulWidget {
   final Goal goal;
@@ -16,8 +17,8 @@ class GoalDetailsPage extends StatefulWidget {
 
 class _GoalDetailsPageState extends State<GoalDetailsPage> {
   late Goal _goal;
-  final NumberFormat _moneyFormat = NumberFormat.currency(symbol: 'TND ', decimalDigits: 2);
-  final String _displayCurrency = 'USD';
+  final NumberFormat _moneyFormat = NumberFormat.currency(symbol: CurrencyConfig.symbol, decimalDigits: 2);
+  final String _displayCurrency = 'TND';
 
   @override
   void initState() {

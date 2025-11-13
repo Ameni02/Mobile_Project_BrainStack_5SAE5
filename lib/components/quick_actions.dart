@@ -10,26 +10,6 @@ class QuickActions extends StatelessWidget {
   Widget build(BuildContext context) {
     final actions = [
       QuickAction(
-        icon: Icons.arrow_upward,
-        label: "Send",
-        color: AppColors.accent,
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Send feature coming soon")),
-          );
-        },
-      ),
-      QuickAction(
-        icon: Icons.arrow_downward,
-        label: "Request",
-        color: AppColors.primary,
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Request feature coming soon")),
-          );
-        },
-      ),
-      QuickAction(
         icon: Icons.article_outlined,
         label: "News",
         color: AppColors.chart3,

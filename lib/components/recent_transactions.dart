@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../models/transaction_data.dart';
+import '../constants/currency.dart';
 
 class RecentTransactions extends StatefulWidget {
   const RecentTransactions({super.key});
@@ -62,7 +63,7 @@ class _RecentTransactionsState extends State<RecentTransactions> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "Expenses: \$${totalExpenses.toStringAsFixed(2)}",
+                "Expenses: ${formatTnd(totalExpenses)}",
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -70,7 +71,7 @@ class _RecentTransactionsState extends State<RecentTransactions> {
                 ),
               ),
               Text(
-                "Revenue: \$${totalRevenue.toStringAsFixed(2)}",
+                "Revenue: ${formatTnd(totalRevenue)}",
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -135,7 +136,7 @@ class _RecentTransactionsState extends State<RecentTransactions> {
             ),
           ),
           Text(
-            "${transaction.type == TransactionType.expense ? '-' : '+'}\$${transaction.amount.toStringAsFixed(2)}",
+            "${transaction.type == TransactionType.expense ? '-' : '+'}${formatTnd(transaction.amount)}",
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -144,9 +145,9 @@ class _RecentTransactionsState extends State<RecentTransactions> {
                   : Colors.green,
             ),
           ),
-        const SizedBox(width: 8),
-        // --- Bouton supprimer ---
-        IconButton(
+          const SizedBox(width: 8),
+          // --- Bouton supprimer ---
+          IconButton(
             icon: const Icon(Icons.delete, color: Colors.grey),
             onPressed: () async {
               await TransactionData.deleteTransactionObject(transaction);
@@ -154,43 +155,43 @@ class _RecentTransactionsState extends State<RecentTransactions> {
                 transactions = TransactionData.allTransactions;
               });
             },
-        ),
-        // Receipt thumbnail (if exists)
-        if (transaction.extraFields != null &&
-            transaction.extraFields!['receiptPath'] != null)
-          GestureDetector(
-            onTap: () {
-              final path = transaction.extraFields!['receiptPath'] as String?;
-              if (path != null && File(path).existsSync()) {
-                showDialog(
-                  context: context,
-                  builder: (_) => Dialog(
-                    child: InteractiveViewer(
-                      child: Image.file(File(path)),
+          ),
+          // Receipt thumbnail (if exists)
+          if (transaction.extraFields != null &&
+              transaction.extraFields!['receiptPath'] != null)
+            GestureDetector(
+              onTap: () {
+                final path = transaction.extraFields!['receiptPath'] as String?;
+                if (path != null && File(path).existsSync()) {
+                  showDialog(
+                    context: context,
+                    builder: (_) => Dialog(
+                      child: InteractiveViewer(
+                        child: Image.file(File(path)),
+                      ),
                     ),
+                  );
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8.0),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade300),
                   ),
-                );
-              }
-            },
-            child: Padding(
-              padding: const EdgeInsets.only(left: 8.0),
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.file(
-                    File(transaction.extraFields!['receiptPath'] as String),
-                    fit: BoxFit.cover,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.file(
+                      File(transaction.extraFields!['receiptPath'] as String),
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );

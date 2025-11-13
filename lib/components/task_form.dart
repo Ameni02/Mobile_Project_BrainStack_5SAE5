@@ -48,7 +48,7 @@ class _TaskFormState extends State<TaskForm>
   double? _temperature;
   String? _weatherTip;
 
-  final Color mainBlue = const Color(0xFF1D2E53);
+  final Color mainBlue = const Color(0xFF4A90E2);
   final Color accent = const Color(0xFF7AA2F7);
   final Color softWhite = const Color(0xFFF9FAFC);
 
@@ -293,7 +293,7 @@ class _TaskFormState extends State<TaskForm>
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
         gradient: const LinearGradient(
-          colors: [Color(0xFF0F172A), Color(0xFF1E3A8A)],
+          colors: [Color(0xFF4A90E2), Color(0xFF1E3A8A)],
         ),
       ),
       child: Column(

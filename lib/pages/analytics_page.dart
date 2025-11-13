@@ -6,6 +6,7 @@ import '../models/transaction_data.dart';
 import '../theme/app_colors.dart';
 import '../components/expense_chatbot.dart';
 import '../services/alpha_vantage_service.dart';
+import '../constants/currency.dart';
 
 class AnalyticsPage extends StatefulWidget {
   const AnalyticsPage({super.key});
@@ -117,18 +118,17 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
                 _buildHeader(),
                 const SizedBox(height: 12),
                 // Tools (chat inline toggle, import)
-                _buildToolsRow(),
                 if (_showInlineChat) const SizedBox(height: 8),
                 if (_showInlineChat) Padding(padding: const EdgeInsets.symmetric(horizontal: 0), child: ExpenseChatbot(inline: true)),
                 const SizedBox(height: 12),
                 // Summary Stats
                 _buildSummaryStats(),
                 const SizedBox(height: 24),
-                
+
                 // Charts Card
                 _buildChartsCard(),
                 const SizedBox(height: 24),
-                
+
                 // Spending Insights
                 _buildSpendingInsights(),
                 const SizedBox(height: 100), // Space for bottom nav
@@ -166,57 +166,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
               ),
               const SizedBox(height: 8),
               // Compact action buttons placed under the subtitle so they're visible on mobile
-              Row(
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _showInlineChat = !_showInlineChat;
-                      });
-                    },
-                    icon: const Icon(Icons.chat_bubble_outline, size: 16),
-                    label: Text(_showInlineChat ? 'Hide Chat' : 'Show Chat', style: const TextStyle(fontSize: 12)),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      minimumSize: const Size(92, 40),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  OutlinedButton.icon(
-                    onPressed: _isGenerating
-                        ? null
-                        : () async {
-                            setState(() {
-                              _isGenerating = true;
-                            });
-                            try {
-                              await AlphaVantageService.persistGeneratedTransactions();
-                              await TransactionData.loadTransactions();
-                              _computeAnalytics();
-                              if (!mounted) return;
-                              final count = TransactionData.allTransactions.length;
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Imported transactions. Total local: $count')));
-                            } catch (e) {
-                              if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to import transactions: $e')));
-                            } finally {
-                              if (!mounted) return;
-                              setState(() {
-                                _isGenerating = false;
-                              });
-                            }
-                          },
-                    icon: _isGenerating ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.cloud_download_outlined, size: 16),
-                    label: const Text('Import', style: TextStyle(fontSize: 12)),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      minimumSize: const Size(80, 40),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                ],
-              ),
+
             ],
           ),
         ),
@@ -260,33 +210,28 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
                 onPressed: _isGenerating
                     ? null
                     : () async {
-                        setState(() {
-                          _isGenerating = true;
-                        });
-                        try {
-                          await AlphaVantageService.persistGeneratedTransactions();
-                          await TransactionData.loadTransactions();
-                          _computeAnalytics();
-                          if (!mounted) return;
-                          final count = TransactionData.allTransactions.length;
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Imported transactions. Total local: $count')));
-                        } catch (e) {
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to import transactions: $e')));
-                        } finally {
-                          if (!mounted) return;
-                          setState(() {
-                            _isGenerating = false;
-                          });
-                        }
-                      },
+                  setState(() {
+                    _isGenerating = true;
+                  });
+                  try {
+                    await AlphaVantageService.persistGeneratedTransactions();
+                    await TransactionData.loadTransactions();
+                    _computeAnalytics();
+                    if (!mounted) return;
+                    final count = TransactionData.allTransactions.length;
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Imported transactions. Total local: $count')));
+                  } catch (e) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to import transactions: $e')));
+                  } finally {
+                    if (!mounted) return;
+                    setState(() {
+                      _isGenerating = false;
+                    });
+                  }
+                },
                 icon: _isGenerating ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.cloud_download_outlined, color: AppColors.primary),
                 tooltip: 'Generate & import transactions',
-              ),
-              const Icon(
-                Icons.settings_outlined,
-                color: AppColors.textSecondary,
-                size: 24,
               ),
             ],
           ),
@@ -295,64 +240,6 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
     );
   }
 
-  Widget _buildToolsRow() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        children: [
-          OutlinedButton.icon(
-            onPressed: () {
-              setState(() {
-                _showInlineChat = !_showInlineChat;
-              });
-            },
-            icon: const Icon(Icons.chat_bubble_outline),
-            label: Text(_showInlineChat ? 'Hide Chat' : 'Show Chat'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.textPrimary,
-              side: BorderSide(color: AppColors.borderLight),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          ),
-          const SizedBox(width: 12),
-          OutlinedButton.icon(
-            onPressed: _isGenerating
-                ? null
-                : () async {
-                    setState(() {
-                      _isGenerating = true;
-                    });
-                    try {
-                      await AlphaVantageService.persistGeneratedTransactions();
-                      await TransactionData.loadTransactions();
-                      _computeAnalytics();
-                      if (!mounted) return;
-                      final count = TransactionData.allTransactions.length;
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Imported transactions. Total local: $count')));
-                    } catch (e) {
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to import transactions: $e')));
-                    } finally {
-                      if (!mounted) return;
-                      setState(() {
-                        _isGenerating = false;
-                      });
-                    }
-                  },
-            icon: _isGenerating ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.cloud_download_outlined),
-            label: const Text('Import Sample'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.textPrimary,
-              side: BorderSide(color: AppColors.borderLight),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildSummaryStats() {
     return Row(
@@ -361,7 +248,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
           child: _buildStatCard(
             icon: Icons.attach_money,
             title: "Net Income",
-            value: NumberFormat.simpleCurrency(locale: 'en_US').format((_totalRevenue - _totalExpenses)),
+            value: formatTnd(_totalRevenue - _totalExpenses),
             subtitle: "Last 6 months",
             color: AppColors.accent,
           ),
@@ -602,7 +489,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
                   final idx = t.x.toInt();
                   final day = (idx >= 0 && idx < _weeklySpending.length) ? _weeklySpending[idx].day : '';
                   return LineTooltipItem(
-                    '$day\n\$${t.y.toStringAsFixed(2)}',
+                    '$day\n${formatTnd(t.y)}',
                     const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                   );
                 }).toList();
@@ -679,7 +566,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
             CategoryData data = entry.value;
             double total = _categoryData.fold(0, (sum, item) => sum + item.value);
             double percentage = total == 0 ? 0 : (data.value / total) * 100;
-            
+
             return PieChartSectionData(
               color: Color(int.parse(data.color.replaceAll('#', '0xFF'))),
               value: data.value,

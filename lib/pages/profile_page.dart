@@ -93,32 +93,13 @@ class _ProfilePageState extends State<ProfilePage>
             ),
             SizedBox(height: 4),
             Text(
-              "Manage your goals and tasks",
+              "Manage your goals, tasks and notes",
               style: TextStyle(
                 fontSize: 16,
                 color: Color(0xFF6B7280),
               ),
             ),
           ],
-        ),
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.settings_outlined,
-            color: Color(0xFF6B7280),
-            size: 24,
-          ),
         ),
       ],
     );
@@ -440,54 +421,6 @@ class _ProfilePageState extends State<ProfilePage>
                 const SizedBox(height: 100), // espace pour la bottom nav
               ],
             ),
-          ),
-        ),
-      ),
-      bottomNavigationBar: BottomAppBar(
-        child: Container(
-          height: 60,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 10,
-                offset: const Offset(0, -2),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              IconButton(
-                onPressed: () {
-                  setState(() => _tabController.index = 0); // Goals
-                },
-                icon: Icon(
-                  Icons.flag,
-                  color: _tabController.index == 0 ? const Color(0xFF4A90E2) : const Color(0xFF6B7280),
-                ),
-              ),
-              IconButton(
-                onPressed: () {
-                  setState(() => _tabController.index = 1); // Notes
-                },
-                icon: Icon(
-                  Icons.note,
-                  color: _tabController.index == 1 ? const Color(0xFF4A90E2) : const Color(0xFF6B7280),
-                ),
-              ),
-              IconButton(
-                onPressed: () {
-                  setState(() => _tabController.index = 2); // To-Do
-                },
-                icon: Icon(
-                  Icons.checklist,
-                  color: _tabController.index == 2 ? const Color(0xFF4A90E2) : const Color(0xFF6B7280),
-                ),
-              ),
-            ],
           ),
         ),
       ),

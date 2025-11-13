@@ -1,7 +1,8 @@
-  import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
   import '../models/transaction_data.dart';
   import '../components/add_transaction_dialog.dart';
   import '../services/exchange_rate_service.dart';
+  import '../constants/currency.dart';
 
 
   class TransactionsPage extends StatefulWidget {
@@ -192,7 +193,7 @@
             ),
             const SizedBox(height: 12),
             Text(
-              "\$${amount.toStringAsFixed(2)}",
+              "${CurrencyConfig.symbol}${amount.toStringAsFixed(2)}",
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -347,7 +348,7 @@
               ),
             ),
             Text(
-              "${isRevenue ? '+' : '-'}\$${transaction.amount.toStringAsFixed(2)}",
+              "${isRevenue ? '+' : '-'}${CurrencyConfig.symbol}${transaction.amount.toStringAsFixed(2)}",
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -391,7 +392,7 @@
                 setState(() => isLoading = true);
                 final result = await ExchangeRateService.convertCurrency(
                   transaction.amount,
-                  "USD", // devise source par défaut
+                  "TND", // devise source par défaut modifiée de USD à TND
                   selectedCurrency,
                 );
                 setState(() {
@@ -421,7 +422,7 @@
                     children: [
                       _buildDetailRow("Category", transaction.category),
                       _buildDetailRow("Date", transaction.date),
-                      _buildDetailRow("Amount", "\$${transaction.amount.toStringAsFixed(2)}"),
+                      _buildDetailRow("Amount", "${CurrencyConfig.symbol}${transaction.amount.toStringAsFixed(2)}"),
                       const SizedBox(height: 16),
 
                       // ✅ Section conversion de devise

@@ -11,7 +11,7 @@ class DB {
     }
     _db = await openDatabase(
       join(await getDatabasesPath(), 'finance_dashboard.db'),
-      version: 5, // bumped version pour inclure transactions
+      version: 6,
       onCreate: (db, version) async {
         await db.execute(
           'CREATE TABLE notes(id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, content TEXT, createdAt TEXT, updatedAt TEXT, categoryId INTEGER, isImportant INTEGER, isArchived INTEGER, isPinned INTEGER)',
@@ -61,12 +61,33 @@ class DB {
             extraFields TEXT
           )
         ''');
+
+        await db.execute('''
+          CREATE TABLE users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE,
+            password TEXT,
+            fullName TEXT,
+            role TEXT,
+            createdAt TEXT
+          )
+        ''');
         // Seed des catégories notes
         await db.insert('categoriesNote', {'nom': 'Personal', 'couleurHex': '#2196F3'});
         await db.insert('categoriesNote', {'nom': 'Work', 'couleurHex': '#FF9800'});
         await db.insert('categoriesNote', {'nom': 'Important', 'couleurHex': '#F44336'});
         // Seed goals
         await _seedGoals(db);
+
+        try {
+          await db.insert('users', {
+            'username': 'Ghassen',
+            'password': 'admin123*',
+            'fullName': 'Ghassen Ben Aissa',
+            'role': 'admin',
+            'createdAt': DateTime.now().toIso8601String(),
+          }, conflictAlgorithm: ConflictAlgorithm.ignore);
+        } catch (_) {}
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -97,9 +118,9 @@ class DB {
         }
         if (oldVersion < 3) {
           final countGoals = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM goals')) ?? 0;
-            if (countGoals == 0) {
-              await _seedGoals(db);
-            }
+          if (countGoals == 0) {
+            await _seedGoals(db);
+          }
         }
         if (oldVersion < 4) {
           // Création de la table tasks si elle n'existe pas
@@ -127,7 +148,7 @@ class DB {
         }
         if (oldVersion < 5) {
           // Ajout table transactions
-            await db.execute('''
+          await db.execute('''
               CREATE TABLE IF NOT EXISTS transactions (
                 id INTEGER PRIMARY KEY,
                 name TEXT,
@@ -140,6 +161,32 @@ class DB {
                 extraFields TEXT
               )
             ''');
+        }
+        if (oldVersion < 6) {
+          // Ajout table users
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              username TEXT UNIQUE,
+              password TEXT,
+              fullName TEXT,
+              role TEXT,
+              createdAt TEXT
+            )
+          ''');
+          // Seed default user if none exists
+          final countUsers = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM users')) ?? 0;
+          if (countUsers == 0) {
+            try {
+              await db.insert('users', {
+                'username': 'Brainstack',
+                'password': 'admin123*',
+                'fullName': 'Demo Admin',
+                'role': 'admin',
+                'createdAt': DateTime.now().toIso8601String(),
+              }, conflictAlgorithm: ConflictAlgorithm.ignore);
+            } catch (_) {}
+          }
         }
       },
     );
@@ -240,6 +287,40 @@ class DB {
         conflictAlgorithm: ConflictAlgorithm.ignore, // ignore si déjà présent
       );
     }
+  }
+
+  // ========== USER HELPERS ==========
+  static Future<int> addUser(String username, String password, {String? fullName, String? role}) async {
+    final database = await db;
+    return await database.insert(
+      'users',
+      {
+        'username': username,
+        'password': password,
+        'fullName': fullName,
+        'role': role,
+        'createdAt': DateTime.now().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+  }
+
+  static Future<Map<String, dynamic>?> getUserByUsername(String username) async {
+    final database = await db;
+    final users = await database.query(
+      'users',
+      where: 'username = ?',
+      whereArgs: [username],
+      limit: 1,
+    );
+    if (users.isNotEmpty) return users.first;
+    return null;
+  }
+
+  static Future<bool> validateUser(String username, String password) async {
+    final user = await getUserByUsername(username);
+    if (user == null) return false;
+    return user['password'] == password;
   }
 
 
@@ -375,7 +456,7 @@ class DB {
         'couleurHex': category.couleurHex,
       },
       where: 'id = ?'
-,
+      ,
       whereArgs: [category.id],
     );
   }

@@ -23,7 +23,7 @@ class _TaskDashboardState extends State<TaskDashboard>
 
   List<Task> tasks = [];
 
-  final Color mainBlue = const Color(0xFF1D2E53);
+  final Color mainBlue = const Color(0xFF4A90E2);
   final Color accentPink = const Color(0xFFFF7BAC);
   final Color softOrange = const Color(0xFFFFA34D);
   final Color doneGreen = const Color(0xFF4BE0B0);

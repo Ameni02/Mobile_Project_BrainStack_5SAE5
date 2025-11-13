@@ -12,7 +12,7 @@ class AppColors {
   static const Color secondaryForeground = Color(0xFF1A1A1A); // oklch(0.15 0.01 240)
   static const Color muted = Color(0xFFF1F5F9); // oklch(0.96 0.01 210)
   static const Color mutedForeground = Color(0xFF64748B); // oklch(0.55 0.02 220)
-  static const Color accent = Color(0xFF10B981); // oklch(0.65 0.15 165) - emerald
+  static const Color accent = Color(0xFF3B82F6); // oklch(0.65 0.15 165) - emerald
   static const Color accentForeground = Color(0xFFFCFCFC); // oklch(0.99 0 0)
   static const Color destructive = Color(0xFFEF4444); // oklch(0.55 0.22 25)
   static const Color destructiveForeground = Color(0xFFFCFCFC); // oklch(0.99 0 0)

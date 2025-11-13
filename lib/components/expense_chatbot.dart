@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/transaction_data.dart';
 import '../models/profile_data.dart';
 import '../theme/app_colors.dart';
+import '../constants/currency.dart';
 
 class ExpenseChatbot extends StatefulWidget {
   final bool inline;
@@ -56,7 +57,7 @@ class _ExpenseChatbotState extends State<ExpenseChatbot> {
         lower.contains('how much have i spent') ||
         lower.contains('how much did i spend')) {
       final total = TransactionData.totalExpenses;
-      return 'Your total expenses are \$${total.toStringAsFixed(2)}.';
+      return 'Your total expenses are ${formatTnd(total)}.';
     }
 
     if (lower.contains('total income') ||
@@ -64,7 +65,7 @@ class _ExpenseChatbotState extends State<ExpenseChatbot> {
         lower.contains('how much did i earn') ||
         lower.contains('income total')) {
       final rev = TransactionData.totalRevenue;
-      return 'Your total income is \$${rev.toStringAsFixed(2)}.';
+      return 'Your total income is ${formatTnd(rev)}.';
     }
 
     // Helper to match category tokens (matches partial words like "food" in "Food & Drink")
@@ -89,12 +90,12 @@ class _ExpenseChatbotState extends State<ExpenseChatbot> {
         final b = matched[1];
         final sumA = TransactionData.expenseTransactions.where((t) => t.category == a).fold(0.0, (s, t) => s + t.amount);
         final sumB = TransactionData.expenseTransactions.where((t) => t.category == b).fold(0.0, (s, t) => s + t.amount);
-        return 'Comparison: You spent \$${sumA.toStringAsFixed(2)} on $a vs \$${sumB.toStringAsFixed(2)} on $b.';
+        return 'Comparison: You spent ${formatTnd(sumA)} on $a vs ${formatTnd(sumB)} on $b.';
       }
 
       final cat = matched[0];
       final sum = TransactionData.expenseTransactions.where((t) => t.category == cat).fold(0.0, (s, t) => s + t.amount);
-      return 'You spent \$${sum.toStringAsFixed(2)} on $cat in recent transactions.';
+      return 'You spent ${formatTnd(sum)} on $cat in recent transactions.';
     }
 
     // Profile queries
@@ -150,28 +151,28 @@ class _ExpenseChatbotState extends State<ExpenseChatbot> {
               child: _messages.isEmpty
                   ? const Center(child: Text('Ask me about saving money or expensing best practices.'))
                   : ListView.builder(
-                      reverse: true,
+                reverse: true,
+                padding: const EdgeInsets.all(12),
+                itemCount: _messages.length,
+                itemBuilder: (context, index) {
+                  final m = _messages[index];
+                  return Align(
+                    alignment: m['isUser'] ? Alignment.centerRight : Alignment.centerLeft,
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 6),
                       padding: const EdgeInsets.all(12),
-                      itemCount: _messages.length,
-                      itemBuilder: (context, index) {
-                        final m = _messages[index];
-                        return Align(
-                          alignment: m['isUser'] ? Alignment.centerRight : Alignment.centerLeft,
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(vertical: 6),
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: m['isUser'] ? AppColors.primary : AppColors.muted,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              m['text'],
-                              style: TextStyle(color: m['isUser'] ? AppColors.primaryForeground : AppColors.textPrimary),
-                            ),
-                          ),
-                        );
-                      },
+                      decoration: BoxDecoration(
+                        color: m['isUser'] ? AppColors.primary : AppColors.muted,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        m['text'],
+                        style: TextStyle(color: m['isUser'] ? AppColors.primaryForeground : AppColors.textPrimary),
+                      ),
                     ),
+                  );
+                },
+              ),
             ),
             const Divider(height: 1),
             SafeArea(
@@ -180,7 +181,7 @@ class _ExpenseChatbotState extends State<ExpenseChatbot> {
                 child: Row(
                   children: [
                     Expanded(
-                    child: TextField(
+                      child: TextField(
                         controller: _controller,
                         textInputAction: TextInputAction.send,
                         onSubmitted: _send,

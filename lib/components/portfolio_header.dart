@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
 class PortfolioHeader extends StatelessWidget {
-  const PortfolioHeader({super.key});
+  final String? username;
+
+  const PortfolioHeader({super.key, this.username});
 
   @override
   Widget build(BuildContext context) {
@@ -20,9 +22,10 @@ class PortfolioHeader extends StatelessWidget {
                   color: AppColors.muted,
                   shape: BoxShape.circle,
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
-                    'JD',
+                    // Show initial (first char) of username or fallback
+                    (username != null && username!.isNotEmpty) ? username![0].toUpperCase() : 'JD',
                     style: TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 16,
@@ -56,63 +59,9 @@ class PortfolioHeader extends StatelessWidget {
               ),
             ],
           ),
-          
+
           const Spacer(),
-          
-          // Action Buttons
-          Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: AppColors.card,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.shadowLight,
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: IconButton(
-                  onPressed: () {},
-                  icon: const Icon(
-                    Icons.notifications_outlined,
-                    color: AppColors.textSecondary,
-                    size: 20,
-                  ),
-                  padding: EdgeInsets.zero,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: AppColors.card,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.shadowLight,
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: IconButton(
-                  onPressed: () {},
-                  icon: const Icon(
-                    Icons.settings_outlined,
-                    color: AppColors.textSecondary,
-                    size: 20,
-                  ),
-                  padding: EdgeInsets.zero,
-                ),
-              ),
-            ],
-          ),
+
         ],
       ),
     );
