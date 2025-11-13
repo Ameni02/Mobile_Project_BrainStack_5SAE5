@@ -60,7 +60,7 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Impossible de récupérer les couleurs. Réessayez.')),
+          const SnackBar(content: Text('Unable to retrieve colors. Please try again.')),
         );
       }
     } finally {
@@ -77,13 +77,13 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez entrer un nom de catégorie')),
+        const SnackBar(content: Text('Please enter a category name')),
       );
       return;
     }
     if (_selectedColor == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez choisir une couleur')),
+        const SnackBar(content: Text('Please choose a color')),
       );
       return;
     }
@@ -130,7 +130,7 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                   ),
                   const SizedBox(width: 8),
                   const Text(
-                    'Ajouter une catégorie',
+                    'Add a category',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
@@ -139,7 +139,7 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                   ),
                   const Spacer(),
                   IconButton(
-                    tooltip: 'Générer des couleurs',
+                    tooltip: 'Generate colors',
                     onPressed: _isLoadingColors ? null : _fetchPalette,
                     icon: _isLoadingColors
                         ? const SizedBox(
@@ -162,7 +162,7 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                   children: [
                     // Champ nom
                     const Text(
-                      'Nom de la catégorie',
+                      'Category name',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -178,7 +178,7 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                         color: AppColors.textPrimary,
                       ),
                       decoration: InputDecoration(
-                        hintText: 'Ex: Travail, Personnel...',
+                        hintText: 'E.g.: Work, Personal...',
                         hintStyle: const TextStyle(
                           fontSize: 16,
                           color: AppColors.textMuted,
@@ -204,7 +204,7 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
 
                     // Sélection de couleur
                     const Text(
-                      'Couleurs suggérées',
+                      'Suggested colors',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -215,7 +215,7 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
 
                     if (_suggestedColors.isEmpty && !_isLoadingColors)
                       const Text(
-                        'Saisissez un nom ou appuyez sur la palette pour générer des couleurs.',
+                        'Enter a name or tap the palette to generate colors.',
                         style: TextStyle(color: AppColors.textMuted),
                       ),
 
@@ -303,7 +303,7 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                     elevation: 0,
                   ),
                   child: const Text(
-                    'Enregistrer',
+                    'Save',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,

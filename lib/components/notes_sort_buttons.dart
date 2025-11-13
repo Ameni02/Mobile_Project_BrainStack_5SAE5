@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-/// Enum des critères de tri disponibles
 enum NotesSortType { dateDesc, dateAsc, titleAsc, titleDesc, importance }
 
 extension NotesSortTypeLabel on NotesSortType {
   String get label {
     switch (this) {
       case NotesSortType.dateDesc:
-        return 'Date (récent)';
+        return 'Date (recent)';
       case NotesSortType.dateAsc:
-        return 'Date (ancien)';
+        return 'Date (oldest)';
       case NotesSortType.titleAsc:
-        return 'Titre (A-Z)';
+        return 'Title (A-Z)';
       case NotesSortType.titleDesc:
-        return 'Titre (Z-A)';
+        return 'Title (Z-A)';
       case NotesSortType.importance:
         return 'Important';
     }
@@ -80,7 +79,7 @@ class _SortButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<NotesSortType>(
-      tooltip: 'Trier les notes',
+      tooltip: 'Sort notes',
       onSelected: onSelected,
       position: PopupMenuPosition.under,
       color: AppColors.card,
@@ -133,7 +132,7 @@ class _ViewToggleButton extends StatelessWidget {
       onTap: onToggle,
       child: _BaseActionChip(
         icon: isGrid ? Icons.view_list : Icons.grid_view,
-        label: isGrid ? 'Liste' : 'Grille',
+        label: isGrid ? 'List' : 'Grid',
       ),
     );
   }

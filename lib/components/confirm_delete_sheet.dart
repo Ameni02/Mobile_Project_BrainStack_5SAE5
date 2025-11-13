@@ -151,7 +151,7 @@ class _ConfirmDeleteSheetState extends State<ConfirmDeleteSheet> with SingleTick
                                 side: BorderSide(color: AppColors.borderLight),
                               ),
                               child: const Text(
-                                'Annuler',
+                                'Cancel',
                                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
                               ),
                             ),
@@ -174,7 +174,7 @@ class _ConfirmDeleteSheetState extends State<ConfirmDeleteSheet> with SingleTick
                                       child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(Colors.white)),
                                     )
                                   : const Text(
-                                      'Confirmer',
+                                      'Confirm',
                                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                                     ),
                             ),

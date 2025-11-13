@@ -17,7 +17,7 @@ class NotesAppBar extends StatelessWidget implements PreferredSizeWidget {
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
         onPressed: onBack ?? () => Navigator.of(context).maybePop(),
-        tooltip: 'Retour',
+        tooltip: 'Back',
       ),
       centerTitle: true,
       title: const Text(

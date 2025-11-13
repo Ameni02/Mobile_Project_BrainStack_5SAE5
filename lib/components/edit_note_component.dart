@@ -9,9 +9,9 @@ class EditNoteComponent extends StatelessWidget {
   final TextEditingController titleController;
   final TextEditingController contentController;
   final CategorieNote? selectedCategory;
-  final VoidCallback onSave; // action de mise à jour
-  final VoidCallback onCancel; // fermeture sans enregistrer
-  final VoidCallback onSelectCategory; // ouvrir le sélecteur de catégories
+  final VoidCallback onSave;
+  final VoidCallback onCancel;
+  final VoidCallback onSelectCategory;
 
   const EditNoteComponent({
     super.key,
@@ -56,7 +56,7 @@ class EditNoteComponent extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   const Text(
-                    'Modifier la note',
+                    'Edit note',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
@@ -85,7 +85,7 @@ class EditNoteComponent extends StatelessWidget {
                         color: AppColors.textPrimary,
                       ),
                       decoration: const InputDecoration(
-                        hintText: 'Titre',
+                        hintText: 'Title',
                         hintStyle: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -98,7 +98,6 @@ class EditNoteComponent extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
 
-                    // Zone catégorie (tap pour changer)
                     InkWell(
                       onTap: () {
                         FocusScope.of(context).unfocus();
@@ -141,7 +140,7 @@ class EditNoteComponent extends StatelessWidget {
                               ),
                               const SizedBox(width: 8),
                               const Text(
-                                'Choisir une catégorie',
+                                'Choose a category',
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
@@ -169,7 +168,7 @@ class EditNoteComponent extends StatelessWidget {
                         color: AppColors.textPrimary,
                       ),
                       decoration: const InputDecoration(
-                        hintText: 'Contenu de la note...',
+                        hintText: 'Note content...',
                         hintStyle: TextStyle(
                           fontSize: 16,
                           color: AppColors.textMuted,
@@ -215,7 +214,7 @@ class EditNoteComponent extends StatelessWidget {
                     elevation: 0,
                   ),
                   child: const Text(
-                    'Enregistrer',
+                    'Save',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,

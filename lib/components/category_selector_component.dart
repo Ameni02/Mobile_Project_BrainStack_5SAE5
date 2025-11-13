@@ -52,7 +52,7 @@ class CategorySelectorComponent extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   const Text(
-                    'Choisir une catégorie',
+                    'Select a category',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
@@ -106,7 +106,7 @@ class CategorySelectorComponent extends StatelessWidget {
             ),
             SizedBox(width: 12),
             Text(
-              'Ajouter une catégorie',
+              'Add a category',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -175,7 +175,7 @@ class CategorySelectorComponent extends StatelessWidget {
                 _ActionIcon(
                   icon: Icons.edit_outlined,
                   color: Theme.of(context).colorScheme.primary,
-                  tooltip: 'Modifier',
+                  tooltip: 'Edit',
                   onTap: () => onEditCategory(category),
                 ),
                 const SizedBox(width: 8),
@@ -183,7 +183,7 @@ class CategorySelectorComponent extends StatelessWidget {
                 _ActionIcon(
                   icon: Icons.delete_outline,
                   color: Colors.red.shade400,
-                  tooltip: 'Supprimer',
+                  tooltip: 'Delete',
                   onTap: () => onDeleteCategory(category),
                 ),
               ],

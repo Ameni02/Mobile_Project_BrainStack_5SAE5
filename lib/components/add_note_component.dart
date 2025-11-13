@@ -52,7 +52,7 @@ class AddNoteComponent extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   const Text(
-                    'Nouvelle note',
+                    'New note',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
@@ -82,7 +82,7 @@ class AddNoteComponent extends StatelessWidget {
                         color: AppColors.textPrimary,
                       ),
                       decoration: const InputDecoration(
-                        hintText: 'Titre',
+                        hintText: 'Title',
                         hintStyle: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -138,7 +138,7 @@ class AddNoteComponent extends StatelessWidget {
                               ),
                               const SizedBox(width: 8),
                               const Text(
-                                'Choisir une catégorie',
+                                'Choose a category',
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
@@ -166,7 +166,7 @@ class AddNoteComponent extends StatelessWidget {
                         color: AppColors.textPrimary,
                       ),
                       decoration: const InputDecoration(
-                        hintText: 'Contenu de la note...',
+                        hintText: 'Note content...',
                         hintStyle: TextStyle(
                           fontSize: 16,
                           color: AppColors.textMuted,
@@ -212,7 +212,7 @@ class AddNoteComponent extends StatelessWidget {
                     elevation: 0,
                   ),
                   child: const Text(
-                    'Enregistrer',
+                    'Save',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
