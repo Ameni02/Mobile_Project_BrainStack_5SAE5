@@ -5,6 +5,7 @@ import '../models/analytics_data.dart';
 import '../models/transaction_data.dart';
 import '../theme/app_colors.dart';
 import '../components/expense_chatbot.dart';
+import '../services/alpha_vantage_service.dart';
 
 class AnalyticsPage extends StatefulWidget {
   const AnalyticsPage({super.key});
@@ -20,6 +21,8 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
   List<CategoryData> _categoryData = [];
   double _totalExpenses = 0;
   double _totalRevenue = 0;
+  bool _isGenerating = false;
+  bool _showInlineChat = false;
 
   @override
   void initState() {
@@ -112,8 +115,12 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
               children: [
                 // Header
                 _buildHeader(),
-                const SizedBox(height: 24),
-                
+                const SizedBox(height: 12),
+                // Tools (chat inline toggle, import)
+                _buildToolsRow(),
+                if (_showInlineChat) const SizedBox(height: 8),
+                if (_showInlineChat) Padding(padding: const EdgeInsets.symmetric(horizontal: 0), child: ExpenseChatbot(inline: true)),
+                const SizedBox(height: 12),
                 // Summary Stats
                 _buildSummaryStats(),
                 const SizedBox(height: 24),
@@ -157,6 +164,59 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
                   color: Color(0xFF6B7280),
                 ),
               ),
+              const SizedBox(height: 8),
+              // Compact action buttons placed under the subtitle so they're visible on mobile
+              Row(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _showInlineChat = !_showInlineChat;
+                      });
+                    },
+                    icon: const Icon(Icons.chat_bubble_outline, size: 16),
+                    label: Text(_showInlineChat ? 'Hide Chat' : 'Show Chat', style: const TextStyle(fontSize: 12)),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      minimumSize: const Size(92, 40),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    onPressed: _isGenerating
+                        ? null
+                        : () async {
+                            setState(() {
+                              _isGenerating = true;
+                            });
+                            try {
+                              await AlphaVantageService.persistGeneratedTransactions();
+                              await TransactionData.loadTransactions();
+                              _computeAnalytics();
+                              if (!mounted) return;
+                              final count = TransactionData.allTransactions.length;
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Imported transactions. Total local: $count')));
+                            } catch (e) {
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to import transactions: $e')));
+                            } finally {
+                              if (!mounted) return;
+                              setState(() {
+                                _isGenerating = false;
+                              });
+                            }
+                          },
+                    icon: _isGenerating ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.cloud_download_outlined, size: 16),
+                    label: const Text('Import', style: TextStyle(fontSize: 12)),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      minimumSize: const Size(80, 40),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -177,20 +237,120 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
             children: [
               IconButton(
                 onPressed: () {
-                  showDialog(context: context, builder: (_) => const ExpenseChatbot());
+                  // open as dialog on larger screens
+                  if (MediaQuery.of(context).size.width > 600) {
+                    showDialog(context: context, builder: (_) => const ExpenseChatbot());
+                  } else {
+                    // on small/mobile screens open as full-screen bottom sheet
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      builder: (ctx) => SizedBox(
+                        height: MediaQuery.of(ctx).size.height * 0.95,
+                        child: const ExpenseChatbot(),
+                      ),
+                    );
+                  }
                 },
-                icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF6B7280)),
+                // single visible chat entry moved to header subtitle buttons (keeps header compact)
+                icon: const Icon(Icons.chat_bubble_outline, color: AppColors.primary),
                 tooltip: 'Expense Helper',
+              ),
+              IconButton(
+                onPressed: _isGenerating
+                    ? null
+                    : () async {
+                        setState(() {
+                          _isGenerating = true;
+                        });
+                        try {
+                          await AlphaVantageService.persistGeneratedTransactions();
+                          await TransactionData.loadTransactions();
+                          _computeAnalytics();
+                          if (!mounted) return;
+                          final count = TransactionData.allTransactions.length;
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Imported transactions. Total local: $count')));
+                        } catch (e) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to import transactions: $e')));
+                        } finally {
+                          if (!mounted) return;
+                          setState(() {
+                            _isGenerating = false;
+                          });
+                        }
+                      },
+                icon: _isGenerating ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.cloud_download_outlined, color: AppColors.primary),
+                tooltip: 'Generate & import transactions',
               ),
               const Icon(
                 Icons.settings_outlined,
-                color: Color(0xFF6B7280),
+                color: AppColors.textSecondary,
                 size: 24,
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildToolsRow() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          OutlinedButton.icon(
+            onPressed: () {
+              setState(() {
+                _showInlineChat = !_showInlineChat;
+              });
+            },
+            icon: const Icon(Icons.chat_bubble_outline),
+            label: Text(_showInlineChat ? 'Hide Chat' : 'Show Chat'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.textPrimary,
+              side: BorderSide(color: AppColors.borderLight),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          const SizedBox(width: 12),
+          OutlinedButton.icon(
+            onPressed: _isGenerating
+                ? null
+                : () async {
+                    setState(() {
+                      _isGenerating = true;
+                    });
+                    try {
+                      await AlphaVantageService.persistGeneratedTransactions();
+                      await TransactionData.loadTransactions();
+                      _computeAnalytics();
+                      if (!mounted) return;
+                      final count = TransactionData.allTransactions.length;
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Imported transactions. Total local: $count')));
+                    } catch (e) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to import transactions: $e')));
+                    } finally {
+                      if (!mounted) return;
+                      setState(() {
+                        _isGenerating = false;
+                      });
+                    }
+                  },
+            icon: _isGenerating ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.cloud_download_outlined),
+            label: const Text('Import Sample'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.textPrimary,
+              side: BorderSide(color: AppColors.borderLight),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -201,7 +361,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
           child: _buildStatCard(
             icon: Icons.attach_money,
             title: "Net Income",
-            value: "\$${(_totalRevenue - _totalExpenses).toStringAsFixed(0)}",
+            value: NumberFormat.simpleCurrency(locale: 'en_US').format((_totalRevenue - _totalExpenses)),
             subtitle: "Last 6 months",
             color: AppColors.accent,
           ),
@@ -227,54 +387,67 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
     required String subtitle,
     required Color color,
   }) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final double titleSize = screenWidth < 360 ? 12 : 14;
+    final double valueSize = screenWidth < 360 ? 20 : (screenWidth < 420 ? 24 : 28);
+    final double subtitleSize = 12;
+
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       decoration: BoxDecoration(
         color: AppColors.card,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.borderLight),
         boxShadow: [
           BoxShadow(
             color: AppColors.shadowLight,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Icon(icon, color: AppColors.textSecondary, size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.muted,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: AppColors.textSecondary, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                  style: TextStyle(
+                    fontSize: titleSize,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.textSecondary,
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.textSecondary,
+                const SizedBox(height: 6),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: valueSize,
+                    fontWeight: FontWeight.w800,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: subtitleSize,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -366,7 +539,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
                   if (value.toInt() < 0 || value.toInt() >= _monthlyData.length) return const Text('');
                   return Text(
                     _monthlyData[value.toInt()].month,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   );
                 },
               ),
@@ -377,7 +550,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
                 getTitlesWidget: (value, meta) {
                   return Text(
                     value.toInt().toString(),
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   );
                 },
               ),
@@ -411,62 +584,82 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
   }
 
   Widget _buildWeeklyChart() {
+    final spots = _weeklySpending.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value.amount)).toList();
+    final maxAmount = _weeklySpending.fold<double>(0.0, (p, e) => e.amount > p ? e.amount : p);
+    final double maxY = (maxAmount * 1.6).clamp(10, double.infinity).toDouble();
+
     return Padding(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       child: LineChart(
         LineChartData(
-          gridData: FlGridData(show: false),
+          minY: 0,
+          maxY: maxY == 0 ? 10 : maxY,
+          lineTouchData: LineTouchData(
+            handleBuiltInTouches: true,
+            touchTooltipData: LineTouchTooltipData(
+              getTooltipItems: (touchedSpots) {
+                return touchedSpots.map((t) {
+                  final idx = t.x.toInt();
+                  final day = (idx >= 0 && idx < _weeklySpending.length) ? _weeklySpending[idx].day : '';
+                  return LineTooltipItem(
+                    '$day\n\$${t.y.toStringAsFixed(2)}',
+                    const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  );
+                }).toList();
+              },
+            ),
+          ),
           titlesData: FlTitlesData(
             show: true,
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
                 getTitlesWidget: (value, meta) {
-                  return Text(
-                (value.toInt() < 0 || value.toInt() >= _weeklySpending.length) ? '' : _weeklySpending[value.toInt()].day,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                  );
+                  final i = value.toInt();
+                  if (i < 0 || i >= _weeklySpending.length) return const Text('');
+                  return Text(_weeklySpending[i].day, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary));
                 },
+                reservedSize: 28,
               ),
             ),
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
+                interval: (maxY / 4),
                 getTitlesWidget: (value, meta) {
-                  return Text(
-                    value.toInt().toString(),
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                  );
+                  return Text(value.toInt().toString(), style: const TextStyle(fontSize: 12, color: AppColors.textSecondary));
                 },
+                reservedSize: 36,
               ),
             ),
+            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          ),
+          gridData: FlGridData(
+            show: true,
+            getDrawingHorizontalLine: (value) => FlLine(color: AppColors.borderLight, strokeWidth: 1),
+            drawVerticalLine: false,
           ),
           borderData: FlBorderData(show: false),
           lineBarsData: [
             LineChartBarData(
-              spots: _weeklySpending.asMap().entries.map((entry) {
-                return FlSpot(entry.key.toDouble(), entry.value.amount);
-              }).toList(),
+              spots: spots,
               isCurved: true,
-              color: const Color(0xFF4A90E2),
+              gradient: LinearGradient(colors: [AppColors.primary, AppColors.accent]),
               barWidth: 3,
               isStrokeCapRound: true,
               dotData: FlDotData(
                 show: true,
-                getDotPainter: (spot, percent, barData, index) {
-                  return FlDotCirclePainter(
-                    radius: 4,
-                    color: const Color(0xFF4A90E2),
-                    strokeWidth: 2,
-                    strokeColor: Colors.white,
-                  );
-                },
+                getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                  radius: 4,
+                  color: AppColors.primary,
+                  strokeWidth: 2,
+                  strokeColor: Colors.white,
+                ),
               ),
               belowBarData: BarAreaData(
                 show: true,
-                color: const Color(0xFF4A90E2).withOpacity(0.1),
+                gradient: LinearGradient(colors: [AppColors.primary.withOpacity(0.18), AppColors.accent.withOpacity(0.08)]),
               ),
             ),
           ],
@@ -583,4 +776,5 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
     );
   }
 }
+
 

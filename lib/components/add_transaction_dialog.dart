@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../models/transaction_data.dart';
+import '../theme/app_colors.dart';
+import '../services/twilio_service.dart';
 
 // OCR/Mindee removed — receipt picker stores image path only.
 class AddTransactionDialog extends StatefulWidget {
@@ -100,6 +102,16 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
 
       // Ajout dans TransactionData et sauvegarde
       await TransactionData.addTransaction(newTransaction);
+
+      // Send Twilio notification for expenses (best-effort)
+      if (newTransaction.type == TransactionType.expense) {
+        try {
+          // Note: configure TwilioService.* static fields with real credentials
+          await TwilioService.sendExpenseNotification(newTransaction);
+        } catch (e) {
+          debugPrint('Failed to send Twilio SMS: $e');
+        }
+      }
 
       // Réinitialiser les champs
       _amountController.clear();
@@ -296,8 +308,10 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
                 icon: const Icon(Icons.receipt_long),
                 label: Text(_receiptPath == null ? 'Add Receipt' : 'Change Receipt'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4A90E2),
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.primaryForeground,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
               ),
             ],
@@ -322,8 +336,8 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
                     _handleSubmit('expense');
                   },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4A90E2),
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.primaryForeground,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -404,9 +418,9 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () => _handleSubmit('revenue'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF65C4A3),
-                foregroundColor: Colors.white,
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.primaryForeground,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
