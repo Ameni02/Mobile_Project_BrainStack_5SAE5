@@ -12,12 +12,15 @@ dependencies:
   path: ^1.8.4
   shared_preferences: ^2.2.0
   sqflite: ^2.3.0
-
   country_picker: ^2.0.20
   country_flags: ^2.2.0
   flutter_dotenv: ^5.1.0
-
   timezone: ^0.9.2
+  url_launcher: ^6.1.10
+  syncfusion_flutter_charts: ^31.2.5
+  image_picker: ^0.8.7+5
+  # tesseract_ocr removed
+
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

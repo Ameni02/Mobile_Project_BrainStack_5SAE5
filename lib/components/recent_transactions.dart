@@ -1,58 +1,36 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import '../models/transaction_data.dart';
 
-class RecentTransactions extends StatelessWidget {
+class RecentTransactions extends StatefulWidget {
   const RecentTransactions({super.key});
 
   @override
+  State<RecentTransactions> createState() => _RecentTransactionsState();
+}
+
+class _RecentTransactionsState extends State<RecentTransactions> {
+  List<Transaction> transactions = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTransactions();
+  }
+
+  Future<void> _loadTransactions() async {
+    await TransactionData.loadTransactions();
+    setState(() {
+      transactions = TransactionData.allTransactions;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final transactions = [
-      Transaction(
-        id: 1,
-        name: "Amazon Purchase",
-        category: "Shopping",
-        date: "Today, 2:30 PM",
-        amount: -89.99,
-        icon: Icons.shopping_bag,
-        color: AppColors.chart1,
-      ),
-      Transaction(
-        id: 2,
-        name: "Starbucks",
-        category: "Food & Drink",
-        date: "Today, 9:15 AM",
-        amount: -12.5,
-        icon: Icons.coffee,
-        color: AppColors.chart2,
-      ),
-      Transaction(
-        id: 3,
-        name: "Electric Bill",
-        category: "Utilities",
-        date: "Yesterday",
-        amount: -145.0,
-        icon: Icons.flash_on,
-        color: AppColors.chart3,
-      ),
-      Transaction(
-        id: 4,
-        name: "Restaurant",
-        category: "Food & Drink",
-        date: "Yesterday",
-        amount: -67.8,
-        icon: Icons.restaurant,
-        color: AppColors.chart4,
-      ),
-      Transaction(
-        id: 5,
-        name: "Gas Station",
-        category: "Transportation",
-        date: "2 days ago",
-        amount: -52.0,
-        icon: Icons.local_gas_station,
-        color: AppColors.chart5,
-      ),
-    ];
+    double totalExpenses = TransactionData.totalExpenses;
+    double totalRevenue = TransactionData.totalRevenue;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -79,6 +57,28 @@ class RecentTransactions extends StatelessWidget {
               color: AppColors.textPrimary,
             ),
           ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Expenses: \$${totalExpenses.toStringAsFixed(2)}",
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.red,
+                ),
+              ),
+              Text(
+                "Revenue: \$${totalRevenue.toStringAsFixed(2)}",
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.green,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 20),
           ...transactions.map((transaction) => _buildTransactionItem(transaction)),
         ],
@@ -87,15 +87,22 @@ class RecentTransactions extends StatelessWidget {
   }
 
   Widget _buildTransactionItem(Transaction transaction) {
+    Color bgColor;
+    try {
+      bgColor = Color(int.parse('0xff${transaction.color.substring(1)}'));
+    } catch (_) {
+      bgColor = AppColors.chart1;
+    }
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         children: [
           Container(
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: transaction.color,
+              color: bgColor,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
@@ -112,53 +119,80 @@ class RecentTransactions extends StatelessWidget {
                 Text(
                   transaction.name,
                   style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   "${transaction.category} • ${transaction.date}",
                   style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w400,
-                  ),
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w400),
                 ),
               ],
             ),
           ),
           Text(
-            "${transaction.amount < 0 ? '-' : '+'}\$${transaction.amount.abs().toStringAsFixed(2)}",
+            "${transaction.type == TransactionType.expense ? '-' : '+'}\$${transaction.amount.toStringAsFixed(2)}",
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: transaction.amount < 0 ? AppColors.textPrimary : AppColors.accent,
+              color: transaction.type == TransactionType.expense
+                  ? Colors.red
+                  : Colors.green,
+            ),
+          ),
+        const SizedBox(width: 8),
+        // --- Bouton supprimer ---
+        IconButton(
+            icon: const Icon(Icons.delete, color: Colors.grey),
+            onPressed: () async {
+              await TransactionData.deleteTransactionObject(transaction);
+              setState(() {
+                transactions = TransactionData.allTransactions;
+              });
+            },
+        ),
+        // Receipt thumbnail (if exists)
+        if (transaction.extraFields != null &&
+            transaction.extraFields!['receiptPath'] != null)
+          GestureDetector(
+            onTap: () {
+              final path = transaction.extraFields!['receiptPath'] as String?;
+              if (path != null && File(path).existsSync()) {
+                showDialog(
+                  context: context,
+                  builder: (_) => Dialog(
+                    child: InteractiveViewer(
+                      child: Image.file(File(path)),
+                    ),
+                  ),
+                );
+              }
+            },
+            child: Padding(
+              padding: const EdgeInsets.only(left: 8.0),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.file(
+                    File(transaction.extraFields!['receiptPath'] as String),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
             ),
           ),
         ],
       ),
     );
   }
-}
-
-class Transaction {
-  final int id;
-  final String name;
-  final String category;
-  final String date;
-  final double amount;
-  final IconData icon;
-  final Color color;
-
-  Transaction({
-    required this.id,
-    required this.name,
-    required this.category,
-    required this.date,
-    required this.amount,
-    required this.icon,
-    required this.color,
-  });
 }

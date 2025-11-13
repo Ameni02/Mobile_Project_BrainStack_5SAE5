@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart'; // ✅ pour charger .env
 import 'home_page.dart';
+import 'pages/login_page.dart';
+// sqflite_common_ffi removed for mobile builds; use platform-native sqflite plugin.
 import 'theme/app_colors.dart';
 import 'models/goals_data.dart';
 
@@ -147,7 +149,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const HomeScreen(),
+      home: const LoginPage(),
     );
   }
 }

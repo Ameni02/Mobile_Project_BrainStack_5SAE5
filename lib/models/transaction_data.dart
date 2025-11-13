@@ -1,4 +1,8 @@
+// lib/models/transaction_data.dart
 import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+import 'dart:convert';
 
 enum TransactionType { expense, revenue }
 
@@ -11,6 +15,7 @@ class Transaction {
   final IconData icon;
   final String color;
   final TransactionType type;
+  final Map<String, dynamic>? extraFields;
 
   Transaction({
     required this.id,
@@ -21,10 +26,237 @@ class Transaction {
     required this.icon,
     required this.color,
     required this.type,
+    this.extraFields,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'category': category,
+      'date': date,
+      'amount': amount,
+      'icon': icon.codePoint,
+      'color': color,
+      'type': type.toString(),
+      'extraFields': jsonEncode(extraFields ?? {}),
+    };
+  }
+
+  static Transaction fromMap(Map<String, dynamic> map) {
+    return Transaction(
+      id: map['id'],
+      name: map['name'],
+      category: map['category'],
+      date: map['date'],
+      amount: (map['amount'] is int) ? (map['amount'] as int).toDouble() : map['amount'],
+      icon: IconData(map['icon'], fontFamily: 'MaterialIcons'),
+      color: map['color'],
+      type: map['type'] == 'TransactionType.expense'
+          ? TransactionType.expense
+          : TransactionType.revenue,
+      extraFields: (map['extraFields'] != null && (map['extraFields'] as String).isNotEmpty)
+          ? Map<String, dynamic>.from(jsonDecode(map['extraFields']))
+          : {},
+    );
+  }
 }
 
 class TransactionData {
+  static Database? _db;
+  static final List<Transaction> expenseTransactions = [];
+  static final List<Transaction> revenueTransactions = [];
+
+  // Initialize DB (call once in main)
+  static Future<void> initDb() async {
+    if (_db != null) return;
+
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, 'transactions.db');
+
+    _db = await openDatabase(
+      path,
+      version: 1,
+      onCreate: (db, version) async {
+        await db.execute('''
+          CREATE TABLE transactions (
+            id INTEGER PRIMARY KEY,
+            name TEXT,
+            category TEXT,
+            date TEXT,
+            amount REAL,
+            icon INTEGER,
+            color TEXT,
+            type TEXT,
+            extraFields TEXT
+          )
+        ''');
+      },
+    );
+
+    await loadTransactions();
+  }
+
+  // Load all transactions from DB into lists
+  static Future<void> loadTransactions() async {
+    if (_db == null) await initDb();
+
+    final List<Map<String, dynamic>> maps =
+    await _db!.query('transactions', orderBy: 'id DESC');
+
+    expenseTransactions.clear();
+    revenueTransactions.clear();
+
+    for (var map in maps) {
+      final t = Transaction.fromMap(map);
+      if (t.type == TransactionType.expense) {
+        expenseTransactions.add(t);
+      } else {
+        revenueTransactions.add(t);
+      }
+    }
+
+    await _addStaticDataIfEmpty();
+  }
+
+  // Add transaction to DB and in-memory list
+  static Future<void> addTransaction(Transaction transaction) async {
+    if (_db == null) await initDb();
+
+    await _db!.insert(
+      'transactions',
+      transaction.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+
+    if (transaction.type == TransactionType.expense) {
+      expenseTransactions.insert(0, transaction);
+    } else {
+      revenueTransactions.insert(0, transaction);
+    }
+  }
+
+  // Update transaction
+  static Future<void> updateTransaction(Transaction updatedTransaction) async {
+    if (_db == null) await initDb();
+
+    await _db!.update(
+      'transactions',
+      updatedTransaction.toMap(),
+      where: 'id = ?',
+      whereArgs: [updatedTransaction.id],
+    );
+
+    if (updatedTransaction.type == TransactionType.expense) {
+      final index = expenseTransactions.indexWhere((t) => t.id == updatedTransaction.id);
+      if (index != -1) expenseTransactions[index] = updatedTransaction;
+    } else {
+      final index = revenueTransactions.indexWhere((t) => t.id == updatedTransaction.id);
+      if (index != -1) revenueTransactions[index] = updatedTransaction;
+    }
+  }
+
+  // Delete by id
+  static Future<void> deleteTransaction(int id) async {
+    if (_db == null) await initDb();
+
+    await _db!.delete(
+      'transactions',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+
+    expenseTransactions.removeWhere((t) => t.id == id);
+    revenueTransactions.removeWhere((t) => t.id == id);
+  }
+
+  // Delete by object (utile pour ton UI)
+  static Future<void> deleteTransactionObject(Transaction transaction) async {
+    await deleteTransaction(transaction.id);
+  }
+
+  // Add static data if DB is empty
+  static Future<void> _addStaticDataIfEmpty() async {
+    if (_db == null) await initDb();
+
+    final count = Sqflite.firstIntValue(await _db!.rawQuery('SELECT COUNT(*) FROM transactions')) ?? 0;
+    if (count == 0) {
+      final staticTransactions = [
+        Transaction(
+          id: 1,
+          name: "Amazon Purchase",
+          category: "Shopping",
+          date: "Today, 2:30 PM",
+          amount: 89.99,
+          icon: Icons.shopping_bag,
+          color: "#65C4A3",
+          type: TransactionType.expense,
+        ),
+        Transaction(
+          id: 2,
+          name: "Starbucks",
+          category: "Food & Drink",
+          date: "Today, 9:15 AM",
+          amount: 12.5,
+          icon: Icons.coffee,
+          color: "#4A90E2",
+          type: TransactionType.expense,
+        ),
+        Transaction(
+          id: 3,
+          name: "Electric Bill",
+          category: "Utilities",
+          date: "Yesterday",
+          amount: 145.0,
+          icon: Icons.flash_on,
+          color: "#7ED321",
+          type: TransactionType.expense,
+        ),
+        Transaction(
+          id: 4,
+          name: "Salary Deposit",
+          category: "Income",
+          date: "3 days ago",
+          amount: 4500.0,
+          icon: Icons.work,
+          color: "#65C4A3",
+          type: TransactionType.revenue,
+        ),
+        Transaction(
+          id: 5,
+          name: "Freelance Project",
+          category: "Income",
+          date: "5 days ago",
+          amount: 850.0,
+          icon: Icons.attach_money,
+          color: "#4A90E2",
+          type: TransactionType.revenue,
+        ),
+      ];
+
+      for (var t in staticTransactions) {
+        await addTransaction(t);
+      }
+    } else {
+      // nothing to do
+    }
+  }
+
+  // Getters
+  static List<Transaction> get allTransactions {
+    final all = [...revenueTransactions, ...expenseTransactions];
+    all.sort((a, b) => b.id.compareTo(a.id));
+    return all;
+  }
+
+  static double get totalExpenses =>
+      expenseTransactions.fold(0, (sum, t) => sum + t.amount);
+
+  static double get totalRevenue =>
+      revenueTransactions.fold(0, (sum, t) => sum + t.amount);
+}
+
+/*class TransactionData {
   static final List<Transaction> expenseTransactions = [
     Transaction(
       id: 1,
@@ -122,4 +354,4 @@ class TransactionData {
   
   static double get totalRevenue => 
       revenueTransactions.fold(0, (sum, transaction) => sum + transaction.amount);
-}
+}*/
