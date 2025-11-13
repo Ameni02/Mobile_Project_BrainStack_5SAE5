@@ -179,9 +179,9 @@ class DB {
           if (countUsers == 0) {
             try {
               await db.insert('users', {
-                'username': 'Brainstack',
+                'username': 'Ghassen',
                 'password': 'admin123*',
-                'fullName': 'Demo Admin',
+                'fullName': 'Ghassen Ben Aissa',
                 'role': 'admin',
                 'createdAt': DateTime.now().toIso8601String(),
               }, conflictAlgorithm: ConflictAlgorithm.ignore);

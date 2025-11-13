@@ -44,7 +44,7 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
     DB.db.then((_) {
-      DB.addUser('Ghassen', 'admin123*', fullName: 'Demo Admin', role: 'admin');
+      DB.addUser('Ghassen', 'admin123*', fullName: 'Ghassen Ben Aissa', role: 'admin');
     });
   }
 
