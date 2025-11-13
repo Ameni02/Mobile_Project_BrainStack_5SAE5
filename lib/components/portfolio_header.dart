@@ -35,7 +35,7 @@ class PortfolioHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              const Column(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
@@ -47,8 +47,9 @@ class PortfolioHeader extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 2),
+                  // Le nom dépendant de username
                   Text(
-                    'Jordan Davis',
+                    username ?? 'Jordan Davis',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,

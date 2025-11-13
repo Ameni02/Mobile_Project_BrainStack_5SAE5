@@ -13,8 +13,9 @@ import 'pages/crypto_page.dart';
 
 class HomeScreen extends StatefulWidget {
   final int initialIndex;
+  final String? username; // nouveau
 
-  const HomeScreen({super.key, this.initialIndex = 0});
+  const HomeScreen({super.key, this.initialIndex = 0, this.username});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -29,23 +30,22 @@ class _HomeScreenState extends State<HomeScreen> {
     _selectedIndex = widget.initialIndex;
   }
 
-  final List<Widget> _pages = const [
-    HomePage(),
-    AnalyticsPage(),
-    TransactionsPage(),
-    ProfilePage(),
-    NewsPage(),
-    CryptoPage(),
-  ];
-
   void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);
   }
 
   @override
   Widget build(BuildContext context) {
+    final pages = [
+      HomePage(username: widget.username),
+      const AnalyticsPage(),
+      const TransactionsPage(),
+      const ProfilePage(),
+      const NewsPage(),
+      const CryptoPage(),
+    ];
     return Scaffold(
-      body: _pages[_selectedIndex],
+      body: pages[_selectedIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: _onItemTapped,
@@ -61,7 +61,8 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+  const HomePage({super.key, this.username});
+  final String? username;
 
   @override
   Widget build(BuildContext context) {
@@ -70,8 +71,8 @@ class HomePage extends StatelessWidget {
         child: Column(
           children: [
             // Portfolio Header
-            const PortfolioHeader(),
-            
+            PortfolioHeader(username: username),
+
             // Main Content
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),

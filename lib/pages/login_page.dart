@@ -24,8 +24,13 @@ class _LoginPageState extends State<LoginPage> {
     final pass = _passController.text;
     final valid = await DB.validateUser(user, pass);
     if (valid) {
+      // Récupérer éventuellement le fullName si présent
+      final data = await DB.getUserByUsername(user);
+      final displayName = (data != null && (data['fullName'] as String?) != null && (data['fullName'] as String).trim().isNotEmpty)
+          ? data['fullName'] as String
+          : user;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => HomeScreen(username: displayName)),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -123,5 +128,3 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
-
-
