@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart'; // ✅ pour charger .env
 import 'home_page.dart';
 import 'theme/app_colors.dart';
 import 'models/goals_data.dart';
@@ -6,6 +7,9 @@ import 'models/goals_data.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await GoalsData.load();
+  // 🔹 Charger les variables d’environnement (ex: OPENWEATHER_API_KEY)
+  await dotenv.load(fileName: ".env");
+  // 🔹 Lancer l’application une fois que tout est prêt
   runApp(const MyApp());
 }
 

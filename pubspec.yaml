@@ -8,17 +8,25 @@ environment:
 
 dependencies:
   flutter:
-    sdk: flutter
-  sqflite: ^2.2.8+4
+   sdk: flutter
   path: ^1.8.4
   shared_preferences: ^2.2.0
+  sqflite: ^2.3.0
+
+  country_picker: ^2.0.20
+  country_flags: ^2.2.0
+  flutter_dotenv: ^5.1.0
+
+  timezone: ^0.9.2
+
+  # The following adds the Cupertino Icons font to your application.
+  # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   fl_chart: ^0.69.0
   intl: ^0.19.0
   http: ^1.2.0
   flutter_launcher_icons: ^0.14.4
-
-
+  permission_handler: ^12.0.1
 
 dev_dependencies:
   flutter_test:
@@ -29,7 +37,7 @@ dev_dependencies:
   sqflite_common_ffi: ^2.3.6
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
   uuid: ^4.5.2
   pdf: ^3.11.3
   printing: ^5.14.2
@@ -39,7 +47,15 @@ dev_dependencies:
   cross_file: ^0.3.5
   flutter_secure_storage: ^9.2.4
 
+
 flutter:
+
+  assets:
+    - .env
+
+  # The following line ensures that the Material Icons font is
+  # included with your application, so that you can use the icons in
+  # the material Icons class.
   uses-material-design: true
 
 flutter_launcher_icons:

@@ -12,7 +12,8 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin {
+class _ProfilePageState extends State<ProfilePage>
+    with TickerProviderStateMixin {
   late TabController _tabController;
   int _activeGoalsCount = 0;
   double _overallProgress = 0.0;
@@ -159,27 +160,21 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.checklist, size: 16),
-                    SizedBox(width: 4),
-                    Text("To-Do"),
-                  ],
-                ),
-              ),
-              Tab(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
                     Icon(Icons.note, size: 16),
                     SizedBox(width: 4),
                     Text("Notes"),
                   ],
                 ),
               ),
+              Tab(
+                icon: Icon(Icons.checklist, size: 18),
+                text: "To-Do",
+              ),
             ],
           ),
           const SizedBox(height: 8),
           SizedBox(
-            height: 500,
+            height: MediaQuery.of(context).size.height * 0.7,
             child: TabBarView(
               controller: _tabController,
               children: [
@@ -428,6 +423,17 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
     );
   }
 
+  // ---------------- TODO & NOTES ----------------
+  Widget _buildTodosTab() {
+    return const Padding(
+      padding: EdgeInsets.all(20),
+      child: TodoList(),
+    );
+  }
+
+
+
+  // ---------------- BUILD ----------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -497,6 +503,28 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
               ),
             ],
           ),
+        ),
+      body: SafeArea(
+        bottom: false,
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(),
+                    const SizedBox(height: 24),
+                    _buildTabbedContent(),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            ),
+
+          ],
         ),
       ),
     );

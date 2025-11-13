@@ -14,7 +14,7 @@ class _BalanceCardState extends State<BalanceCard> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 200,
+      height: 230, // 🔹 Augmenté pour éviter l’overflow
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [AppColors.primary, Color(0xFF1D4ED8)],
@@ -32,7 +32,7 @@ class _BalanceCardState extends State<BalanceCard> {
       ),
       child: Stack(
         children: [
-          // Background decorative circles
+          // 🔹 Cercles décoratifs en arrière-plan
           Positioned(
             right: -30,
             top: -30,
@@ -57,14 +57,15 @@ class _BalanceCardState extends State<BalanceCard> {
               ),
             ),
           ),
-          
-          // Content
+
+          // 🔹 Contenu principal
           Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min, // 🔹 Empêche le dépassement vertical
               children: [
-                // Header with toggle button
+                // 🔸 En-tête avec bouton afficher/masquer
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -99,20 +100,24 @@ class _BalanceCardState extends State<BalanceCard> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                
-                // Balance amount
-                Text(
-                  _showBalance ? '\$24,582.50' : '••••••',
-                  style: const TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: -1,
+
+                // 🔸 Montant du solde
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _showBalance ? '\$24,582.50' : '••••••',
+                    style: const TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: -1,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                
-                // Performance indicator
+                const SizedBox(height: 20),
+
+                // 🔸 Indicateur de performance
                 Row(
                   children: [
                     Container(
