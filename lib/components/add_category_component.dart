@@ -18,7 +18,7 @@ class AddCategoryComponent extends StatefulWidget {
 
 class _AddCategoryComponentState extends State<AddCategoryComponent> {
   final TextEditingController _nameController = TextEditingController();
-  Color? _selectedColor; // Selected color
+  Color? _selectedColor; // Couleur choisie
   List<Color> _suggestedColors = [];
   bool _isLoadingColors = false;
   DateTime _lastInputTime = DateTime.fromMillisecondsSinceEpoch(0);
@@ -54,13 +54,13 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
       if (!mounted) return;
       setState(() {
         _suggestedColors = palette;
-        // Preselect the first color if none selected yet
+        // Pré-sélectionner la première si aucune sélection
         _selectedColor ??= palette.isNotEmpty ? palette.first : null;
       });
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Unable to fetch colors. Please try again.')),
+          const SnackBar(content: Text('Unable to retrieve colors. Please try again.')),
         );
       }
     } finally {
@@ -73,7 +73,7 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
   }
 
   void _saveCategory() {
-    FocusScope.of(context).unfocus(); // Close the keyboard before saving
+    FocusScope.of(context).unfocus(); // fermer le clavier avant sauvegarde
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -83,13 +83,13 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
     }
     if (_selectedColor == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a color')),
+        const SnackBar(content: Text('Please choose a color')),
       );
       return;
     }
     widget.onCategoryCreated({
-      'name': name,
-      'colorHex': _colorToHex(_selectedColor!),
+      'nom': name,
+      'couleurHex': _colorToHex(_selectedColor!),
     });
   }
 
@@ -123,14 +123,14 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                   IconButton(
                     icon: const Icon(Icons.arrow_back),
                     onPressed: () {
-                      FocusScope.of(context).unfocus(); // Close keyboard before returning
+                      FocusScope.of(context).unfocus(); // fermer le clavier avant retour
                       widget.onClose();
                     },
                     color: AppColors.textSecondary,
                   ),
                   const SizedBox(width: 8),
                   const Text(
-                    'Add Category',
+                    'Add a category',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
@@ -143,10 +143,10 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                     onPressed: _isLoadingColors ? null : _fetchPalette,
                     icon: _isLoadingColors
                         ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
                         : const Icon(Icons.palette_outlined),
                   )
                 ],
@@ -160,9 +160,9 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Name field
+                    // Champ nom
                     const Text(
-                      'Category Name',
+                      'Category name',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -178,7 +178,7 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                         color: AppColors.textPrimary,
                       ),
                       decoration: InputDecoration(
-                        hintText: 'Ex: Work, Personal...',
+                        hintText: 'E.g.: Work, Personal...',
                         hintStyle: const TextStyle(
                           fontSize: 16,
                           color: AppColors.textMuted,
@@ -202,9 +202,9 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                     ),
                     const SizedBox(height: 32),
 
-                    // Color selection
+                    // Sélection de couleur
                     const Text(
-                      'Suggested Colors',
+                      'Suggested colors',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -215,7 +215,7 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
 
                     if (_suggestedColors.isEmpty && !_isLoadingColors)
                       const Text(
-                        'Type a name or tap the palette icon to generate colors.',
+                        'Enter a name or tap the palette to generate colors.',
                         style: TextStyle(color: AppColors.textMuted),
                       ),
 
@@ -223,60 +223,60 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                       duration: const Duration(milliseconds: 300),
                       child: _isLoadingColors
                           ? const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: CircularProgressIndicator(),
-                        ),
-                      )
-                          : GridView.builder(
-                        key: ValueKey(_suggestedColors.length),
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 5,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 1,
-                        ),
-                        itemCount: _suggestedColors.length,
-                        itemBuilder: (context, index) {
-                          final color = _suggestedColors[index];
-                          final isSelected = color == _selectedColor;
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() => _selectedColor = color);
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              decoration: BoxDecoration(
-                                color: color,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  if (isSelected)
-                                    BoxShadow(
-                                      color: color.withValues(alpha: 0.5),
-                                      blurRadius: 12,
-                                      spreadRadius: 2,
-                                    ),
-                                ],
-                                border: isSelected
-                                    ? Border.all(color: Colors.white, width: 4)
-                                    : null,
+                              child: Padding(
+                                padding: EdgeInsets.all(16.0),
+                                child: CircularProgressIndicator(),
                               ),
-                              child: isSelected
-                                  ? const Icon(Icons.check, color: Colors.white, size: 32)
-                                  : null,
+                            )
+                          : GridView.builder(
+                              key: ValueKey(_suggestedColors.length),
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 5,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                                childAspectRatio: 1,
+                              ),
+                              itemCount: _suggestedColors.length,
+                              itemBuilder: (context, index) {
+                                final color = _suggestedColors[index];
+                                final isSelected = color == _selectedColor;
+                                return GestureDetector(
+                                  onTap: () {
+                                    setState(() => _selectedColor = color);
+                                  },
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    decoration: BoxDecoration(
+                                      color: color,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        if (isSelected)
+                                          BoxShadow(
+                                            color: color.withValues(alpha: 0.5),
+                                            blurRadius: 12,
+                                            spreadRadius: 2,
+                                          ),
+                                      ],
+                                      border: isSelected
+                                          ? Border.all(color: Colors.white, width: 4)
+                                          : null,
+                                    ),
+                                    child: isSelected
+                                        ? const Icon(Icons.check, color: Colors.white, size: 32)
+                                        : null,
+                                  ),
+                                );
+                              },
                             ),
-                          );
-                        },
-                      ),
                     ),
                   ],
                 ),
               ),
             ),
 
-            // Save button
+            // Bouton Enregistrer
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(

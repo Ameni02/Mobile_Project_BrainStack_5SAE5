@@ -57,7 +57,7 @@ class _EditCategoryComponentState extends State<EditCategoryComponent> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Impossible de récupérer les couleurs. Réessayez.')),
+          const SnackBar(content: Text('Unable to retrieve colors. Please try again.')),
         );
       }
     } finally {
@@ -70,13 +70,13 @@ class _EditCategoryComponentState extends State<EditCategoryComponent> {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez entrer un nom de catégorie')),
+        const SnackBar(content: Text('Please enter a category name')),
       );
       return;
     }
     if (_selectedColor == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez choisir une couleur')),
+        const SnackBar(content: Text('Please choose a color')),
       );
       return;
     }
@@ -117,10 +117,10 @@ class _EditCategoryComponentState extends State<EditCategoryComponent> {
                     color: AppColors.textSecondary,
                   ),
                   const SizedBox(width: 8),
-                  const Text('Modifier la catégorie', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                  const Text('Edit category', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
                   const Spacer(),
                   IconButton(
-                    tooltip: 'Générer des couleurs',
+                    tooltip: 'Generate colors',
                     onPressed: _isLoadingColors ? null : _fetchPalette,
                     icon: _isLoadingColors
                         ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
@@ -135,14 +135,14 @@ class _EditCategoryComponentState extends State<EditCategoryComponent> {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('Nom de la catégorie', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+                  const Text('Category name', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _nameController,
                     autofocus: true,
                     style: const TextStyle(fontSize: 16, color: AppColors.textPrimary),
                     decoration: InputDecoration(
-                      hintText: 'Ex: Travail, Personnel...',
+                      hintText: 'E.g.: Work, Personal...',
                       hintStyle: const TextStyle(fontSize: 16, color: AppColors.textMuted),
                       filled: true,
                       fillColor: AppColors.secondary,
@@ -163,7 +163,7 @@ class _EditCategoryComponentState extends State<EditCategoryComponent> {
                   ),
                   const SizedBox(height: 32),
 
-                  const Text('Ancienne couleur', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+                  const Text('Previous color', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
                   const SizedBox(height: 12),
                   Center(
                     child: GestureDetector(
@@ -189,10 +189,10 @@ class _EditCategoryComponentState extends State<EditCategoryComponent> {
                   ),
                   const SizedBox(height: 32),
 
-                  const Text('Couleurs suggérées', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+                  const Text('Suggested colors', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
                   const SizedBox(height: 16),
                   if (_suggestedColors.isEmpty && !_isLoadingColors)
-                    const Text('Saisissez un nom ou utilisez la palette pour générer des couleurs.', style: TextStyle(color: AppColors.textMuted)),
+                    const Text('Enter a name or use the palette to generate colors.', style: TextStyle(color: AppColors.textMuted)),
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 300),
                     child: _isLoadingColors
@@ -251,7 +251,7 @@ class _EditCategoryComponentState extends State<EditCategoryComponent> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
-                  child: const Text('Enregistrer les modifications', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  child: const Text('Save changes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
               ),
             ),

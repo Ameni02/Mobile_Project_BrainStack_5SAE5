@@ -29,25 +29,21 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
   List<Note> _notes = [];
   List<Note> _filteredNotes = [];
 
-  // État pour les composants d'ajout/édition
   bool _showAddNote = false;
   bool _showCategorySelector = false;
   bool _showAddCategory = false;
-  bool _showEditCategory = false; // nouvel overlay édition catégorie
+  bool _showEditCategory = false;
   final TextEditingController _titleCtrl = TextEditingController();
   final TextEditingController _contentCtrl = TextEditingController();
   CategorieNote? _selectedCategory;
   CategorieNote? _categoryBeingEdited;
   List<CategorieNote> _categories = [];
 
-  // Filtrage par catégorie
   CategorieNote? _filterCategory;
 
-  // Animation du FAB
   late AnimationController _fabAnimationController;
   late Animation<double> _fabScaleAnimation;
 
-  // Nouveaux états pour l'édition
   bool _showEditNote = false;
   Note? _noteBeingEdited;
 
@@ -81,7 +77,6 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
     try {
       final rows = await DB.getNotes();
       _notes = rows.map((m) => _mapRowToNote(m)).toList();
-      // _applySort agit sur toutes les notes mais l'affichage final exclut les archivées.
       _applySort();
       _applyFilter();
     } catch (_) {
@@ -96,7 +91,6 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
       final categories = await DB.getAllCategories();
       setState(() => _categories = categories);
     } catch (_) {
-      // Garder silencieux
     }
   }
 
@@ -206,12 +200,12 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
       await _loadNotes();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Note supprimée avec succès')),
+        const SnackBar(content: Text('Note deleted successfully')),
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erreur lors de la suppression.')),
+        const SnackBar(content: Text('Error while deleting.')),
       );
     }
   }
@@ -221,7 +215,7 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
     final content = _contentCtrl.text.trim();
     if (title.isEmpty && content.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Note vide ignorée.')),
+        const SnackBar(content: Text('Empty note ignored.')),
       );
       return;
     }
@@ -271,7 +265,7 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
     final content = _contentCtrl.text.trim();
     if (title.isEmpty && content.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Note vide ignorée.')),
+        const SnackBar(content: Text('Empty note ignored.')),
       );
       return;
     }
@@ -285,12 +279,12 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
       await _loadNotes();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Note mise à jour')),
+        const SnackBar(content: Text('Note updated')),
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erreur lors de la mise à jour.')),
+        const SnackBar(content: Text('Error while updating.')),
       );
     }
     _closeEditNote();
@@ -356,7 +350,7 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
   Future<void> _onCategoryCreated(Map<String, String> data) async {
     final newCat = CategorieNote(
       id: 0,
-      nom: data['nom'] ?? 'Nouvelle catégorie',
+      nom: data['nom'] ?? 'New category',
       couleurHex: data['couleurHex'] ?? '#2196F3',
     );
     try {
@@ -369,10 +363,10 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
         _showCategorySelector = true; // revenir à la liste
       });
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Catégorie ajoutée')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Category added')));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erreur création catégorie')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error creating category')));
     }
   }
 
@@ -410,10 +404,10 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
         _showCategorySelector = true;
       });
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Catégorie mise à jour')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Category updated')));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erreur mise à jour catégorie')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error updating category')));
     }
   }
 
@@ -428,10 +422,10 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
         }
       });
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Catégorie supprimée avec succès')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Category deleted successfully')));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erreur suppression catégorie')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Category deletion error')));
     }
   }
 
@@ -449,7 +443,7 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
       await _loadNotes();
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erreur lors du pin.')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error while pinning.')));
     }
   }
 
@@ -465,11 +459,11 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
       await _loadNotes();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(newArchived ? 'Note archivée avec succès' : 'Note restaurée')),
+        SnackBar(content: Text(newArchived ? 'Note archived successfully' : 'Note restored')),
       );
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erreur archivage')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Archiving error')));
     }
   }
 
@@ -479,8 +473,8 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => ConfirmDeleteSheet(
-        title: 'Supprimer cette note ?',
-        message: 'Cette action est irréversible.',
+        title: 'Delete this note?',
+        message: 'This action is irreversible.',
         onConfirm: () async {
           await _deleteNote(note);
           if (!mounted) return;
@@ -496,8 +490,8 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => ConfirmDeleteSheet(
-        title: 'Supprimer cette catégorie ?',
-        message: 'Cette action est irréversible.',
+        title: 'Delete this category?',
+        message: 'This action cannot be undone.',
         onConfirm: () async {
           await _deleteCategory(cat);
           if (!mounted) return;
@@ -646,7 +640,7 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
         children: [
           // Option "Toutes"
           _buildCategoryChip(
-            label: 'Toutes',
+            label: 'All',
             isSelected: _filterCategory == null,
             onTap: () {
               setState(() {
@@ -789,7 +783,7 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
             Icon(Icons.note_outlined, size: 48, color: AppColors.textMuted),
             SizedBox(height: 12),
             Text(
-              'Aucune note',
+              'No notes',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -798,7 +792,7 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
             ),
             SizedBox(height: 6),
             Text(
-              'Vos notes apparaîtront ici.',
+              'Your notes will appear here.',
               style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
             ),
           ],
@@ -892,7 +886,7 @@ class _NotesPageState extends State<NotesPage> with SingleTickerProviderStateMix
         alignment: Alignment.bottomCenter,
         child: AddCategoryComponent(
           onCategoryCreated: _onCategoryCreated,
-          onClose: _closeAddCategory, // retour liste catégories
+          onClose: _closeAddCategory,
         ),
       )
           : const SizedBox.shrink(),

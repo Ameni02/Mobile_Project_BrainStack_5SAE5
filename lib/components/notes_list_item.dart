@@ -8,13 +8,12 @@ class NoteListItem extends StatelessWidget {
   final VoidCallback? onDelete;
   final VoidCallback? onTap;
   final VoidCallback? onTogglePinned;
-  final VoidCallback? onArchive; // nouveau
+  final VoidCallback? onArchive;
 
   const NoteListItem({super.key, required this.note, this.onDelete, this.onTap, this.onTogglePinned, this.onArchive});
 
   @override
   Widget build(BuildContext context) {
-    // Déterminer la couleur de la bordure selon la catégorie
     Color borderColor = AppColors.borderLight;
     if (note.categorie != null) {
       try {
@@ -54,7 +53,7 @@ class NoteListItem extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    note.title.isEmpty ? 'Sans titre' : note.title,
+                    note.title.isEmpty ? 'Untitled' : note.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -133,7 +132,7 @@ class NoteListItem extends StatelessWidget {
     } else {
       rel = '${ref.day}/${ref.month}/${ref.year}';
     }
-    return (isModified ? 'Modifiée il y a ' : 'Ajoutée il y a ') + rel;
+    return (isModified ? 'Modified ' : 'Added ') + rel;
   }
 
   void _openMenu(BuildContext context) {
@@ -170,7 +169,7 @@ class _ActionsSheet extends StatelessWidget {
             Container(width: 40, height: 5, margin: const EdgeInsets.only(bottom: 8), decoration: BoxDecoration(color: AppColors.borderLight, borderRadius: BorderRadius.circular(4))),
             _ActionTile(
               icon: isArchived ? Icons.unarchive_outlined : Icons.archive_outlined,
-              label: isArchived ? 'Restaurer' : 'Archiver',
+              label: isArchived ? 'Restore' : 'Archive',
               onTap: () {
                 Navigator.pop(context);
                 onArchiveToggle?.call();
@@ -178,7 +177,7 @@ class _ActionsSheet extends StatelessWidget {
             ),
             _ActionTile(
               icon: Icons.delete_outline,
-              label: 'Supprimer',
+              label: 'Delete',
               onTap: () {
                 Navigator.pop(context);
                 onDelete?.call();

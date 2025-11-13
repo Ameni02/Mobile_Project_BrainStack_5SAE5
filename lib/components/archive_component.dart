@@ -136,11 +136,11 @@ class _ArchiveComponentState extends State<ArchiveComponent> with SingleTickerPr
         _filteredNotes = List.from(_notes);
         _changed = true; // marquer changement
       });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Note restaurée')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Note restored')));
       await _loadNotes();
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erreur restauration')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Restore error')));
     }
   }
 
@@ -150,14 +150,14 @@ class _ArchiveComponentState extends State<ArchiveComponent> with SingleTickerPr
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => ConfirmDeleteSheet(
-        title: 'Supprimer cette note ?',
-        message: 'Cette action est irréversible.',
+        title: 'Delete this note?',
+        message: 'This action is irreversible',
         onConfirm: () async {
           await DB.deleteNotes(note.id);
           await _loadNotes();
           setState(() { _changed = true; });
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Note supprimée avec succès')));
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Note deleted successfully')));
         },
         icon: Icons.delete_outline,
       ),
@@ -190,10 +190,10 @@ class _ArchiveComponentState extends State<ArchiveComponent> with SingleTickerPr
       await DB.updateNote(_noteBeingEdited!.id, title: _titleCtrl.text.trim(), content: _contentCtrl.text.trim(), categoryId: _selectedCategory?.id);
       await _loadNotes();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Note mise à jour')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Note updated')));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erreur mise à jour')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Update error')));
     }
     _closeEditNote();
   }
@@ -243,7 +243,7 @@ class _ArchiveComponentState extends State<ArchiveComponent> with SingleTickerPr
   }
 
   Future<void> _onCategoryCreated(Map<String, String> data) async {
-    final c = CategorieNote(id: 0, nom: data['nom'] ?? 'Nouvelle', couleurHex: data['couleurHex'] ?? '#2196F3');
+    final c = CategorieNote(id: 0, nom: data['nom'] ?? 'New', couleurHex: data['couleurHex'] ?? '#2196F3');
     try {
       final id = await DB.insertCategory(c);
       await _loadCategories();
@@ -253,10 +253,10 @@ class _ArchiveComponentState extends State<ArchiveComponent> with SingleTickerPr
         _showCategorySelector = true;
       });
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Catégorie ajoutée')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Category added')));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erreur création catégorie')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Category creation error')));
     }
   }
 
@@ -273,10 +273,10 @@ class _ArchiveComponentState extends State<ArchiveComponent> with SingleTickerPr
         _showCategorySelector = true;
       });
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Catégorie mise à jour')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Category updated')));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erreur mise à jour catégorie')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Category update error')));
     }
   }
 
@@ -353,7 +353,7 @@ class _ArchiveComponentState extends State<ArchiveComponent> with SingleTickerPr
             children: const [
               Icon(Icons.archive_outlined, size: 48, color: AppColors.textMuted),
               SizedBox(height: 12),
-              Text('Aucune note archivée pour le moment.', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
+              Text('No notes archived at the moment.', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
             ],
           ),
         ),
