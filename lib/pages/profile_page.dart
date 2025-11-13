@@ -3,6 +3,7 @@ import 'goals_page.dart';
 import 'notes_page.dart';
 import '../components/todo_list.dart';
 import '../models/goals_data.dart';
+import '../DB/DB.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -15,12 +16,15 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
   late TabController _tabController;
   int _activeGoalsCount = 0;
   double _overallProgress = 0.0;
+  int _totalNotes = 0;
+  int _archivedNotes = 0;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this); // ajouté onglet Notes
     _loadGoalsSummary();
+    _loadNotesSummary();
   }
 
   Future<void> _loadGoalsSummary() async {
@@ -29,6 +33,40 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
       _activeGoalsCount = GoalsData.goals.where((g) => !g.isArchived && !g.isCompleted).length;
       _overallProgress = GoalsData.overallProgress;
     });
+  }
+
+  Future<void> _loadNotesSummary() async {
+    try {
+      final rows = await DB.getNotes();
+      int archived = 0;
+      for (final m in rows) {
+        final v = m['isArchived'];
+        bool isArchived;
+        if (v is bool) {
+          isArchived = v;
+        } else if (v is int) {
+          isArchived = v == 1;
+        } else if (v is String) {
+          isArchived = v == '1' || v.toLowerCase() == 'true';
+        } else {
+          isArchived = false;
+        }
+        if (isArchived) archived++;
+      }
+      if (mounted) {
+        setState(() {
+          _totalNotes = rows.length;
+          _archivedNotes = archived;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _totalNotes = 0;
+          _archivedNotes = 0;
+        });
+      }
+    }
   }
 
   @override
@@ -127,37 +165,19 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
                   ],
                 ),
               ),
+              Tab(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.note, size: 16),
+                    SizedBox(width: 4),
+                    Text("Notes"),
+                  ],
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0),
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    PageRouteBuilder(
-                      pageBuilder: (_, __, ___) => const NotesPage(),
-                      transitionDuration: Duration.zero,
-                      reverseTransitionDuration: Duration.zero,
-                      transitionsBuilder: (_, __, ___, child) => child,
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.note, size: 16),
-                label: const Text("Notes"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4A90E2),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-            ),
-          ),
           SizedBox(
             height: 500,
             child: TabBarView(
@@ -165,6 +185,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
               children: [
                 _buildGoalsTab(),
                 _buildTodosTab(),
+                _buildNotesTab(), // nouvel onglet
               ],
             ),
           ),
@@ -295,6 +316,118 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
     );
   }
 
+  Widget _buildNotesTab() {
+    return GestureDetector(
+      onTap: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const NotesPage()),
+        );
+        await _loadNotesSummary();
+      },
+      child: Container(
+        margin: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              const Color.fromRGBO(74, 144, 226, 0.1),
+              const Color.fromRGBO(101, 196, 163, 0.1),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color.fromRGBO(74, 144, 226, 0.3),
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(
+                color: Color.fromRGBO(74, 144, 226, 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.note,
+                size: 48,
+                color: Color(0xFF4A90E2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              "Notes",
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1A1A1A),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              "Tap to view and manage your notes",
+              style: TextStyle(
+                fontSize: 16,
+                color: Color(0xFF6B7280),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Column(
+                  children: [
+                    Text('All', style: TextStyle(color: Colors.grey.shade700)),
+                    const SizedBox(height: 6),
+                    Text('$_totalNotes', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                const SizedBox(width: 24),
+                Column(
+                  children: [
+                    Text('Archived', style: TextStyle(color: Colors.grey.shade700)),
+                    const SizedBox(height: 6),
+                    Text('$_archivedNotes', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF4A90E2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "View Notes",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Icon(
+                    Icons.arrow_forward,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -340,23 +473,27 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
               IconButton(
                 onPressed: () {
                   setState(() {
-                    _tabController.index = 1;
+                    _tabController.index = 1; // To-Do
                   });
                 },
                 icon: const Icon(Icons.checklist, color: Color(0xFF6B7280)),
               ),
-              SizedBox(width: 48), // Spacer for the center button
+              const SizedBox(width: 48),
               IconButton(
                 onPressed: () {
                   setState(() {
-                    _tabController.index = 0;
+                    _tabController.index = 0; // Goals
                   });
                 },
                 icon: const Icon(Icons.flag, color: Color(0xFF6B7280)),
               ),
               IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.person, color: Color(0xFF6B7280)),
+                onPressed: () {
+                  setState(() {
+                    _tabController.index = 2; // Notes
+                  });
+                },
+                icon: const Icon(Icons.note, color: Color(0xFF6B7280)),
               ),
             ],
           ),
