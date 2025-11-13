@@ -9,7 +9,6 @@ class TwilioService {
   // TODO: Replace these with your real credentials or provide a secure config.
 
 
-  static String get _baseUrl => 'https://api.twilio.com/2010-04-01/Accounts/$accountSid/Messages.json';
 
   /// Send a generic SMS message via Twilio REST API.
   static Future<bool> sendSms({required String to, required String from, required String body}) async {
