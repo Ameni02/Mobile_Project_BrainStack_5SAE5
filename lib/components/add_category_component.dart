@@ -18,7 +18,7 @@ class AddCategoryComponent extends StatefulWidget {
 
 class _AddCategoryComponentState extends State<AddCategoryComponent> {
   final TextEditingController _nameController = TextEditingController();
-  Color? _selectedColor; // Couleur choisie
+  Color? _selectedColor; // Selected color
   List<Color> _suggestedColors = [];
   bool _isLoadingColors = false;
   DateTime _lastInputTime = DateTime.fromMillisecondsSinceEpoch(0);
@@ -54,13 +54,13 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
       if (!mounted) return;
       setState(() {
         _suggestedColors = palette;
-        // Pré-sélectionner la première si aucune sélection
+        // Preselect the first color if none selected yet
         _selectedColor ??= palette.isNotEmpty ? palette.first : null;
       });
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Impossible de récupérer les couleurs. Réessayez.')),
+          const SnackBar(content: Text('Unable to fetch colors. Please try again.')),
         );
       }
     } finally {
@@ -73,23 +73,23 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
   }
 
   void _saveCategory() {
-    FocusScope.of(context).unfocus(); // fermer le clavier avant sauvegarde
+    FocusScope.of(context).unfocus(); // Close the keyboard before saving
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez entrer un nom de catégorie')),
+        const SnackBar(content: Text('Please enter a category name')),
       );
       return;
     }
     if (_selectedColor == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez choisir une couleur')),
+        const SnackBar(content: Text('Please select a color')),
       );
       return;
     }
     widget.onCategoryCreated({
-      'nom': name,
-      'couleurHex': _colorToHex(_selectedColor!),
+      'name': name,
+      'colorHex': _colorToHex(_selectedColor!),
     });
   }
 
@@ -123,14 +123,14 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                   IconButton(
                     icon: const Icon(Icons.arrow_back),
                     onPressed: () {
-                      FocusScope.of(context).unfocus(); // fermer le clavier avant retour
+                      FocusScope.of(context).unfocus(); // Close keyboard before returning
                       widget.onClose();
                     },
                     color: AppColors.textSecondary,
                   ),
                   const SizedBox(width: 8),
                   const Text(
-                    'Ajouter une catégorie',
+                    'Add Category',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
@@ -139,14 +139,14 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                   ),
                   const Spacer(),
                   IconButton(
-                    tooltip: 'Générer des couleurs',
+                    tooltip: 'Generate colors',
                     onPressed: _isLoadingColors ? null : _fetchPalette,
                     icon: _isLoadingColors
                         ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                         : const Icon(Icons.palette_outlined),
                   )
                 ],
@@ -160,9 +160,9 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Champ nom
+                    // Name field
                     const Text(
-                      'Nom de la catégorie',
+                      'Category Name',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -178,7 +178,7 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                         color: AppColors.textPrimary,
                       ),
                       decoration: InputDecoration(
-                        hintText: 'Ex: Travail, Personnel...',
+                        hintText: 'Ex: Work, Personal...',
                         hintStyle: const TextStyle(
                           fontSize: 16,
                           color: AppColors.textMuted,
@@ -202,9 +202,9 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                     ),
                     const SizedBox(height: 32),
 
-                    // Sélection de couleur
+                    // Color selection
                     const Text(
-                      'Couleurs suggérées',
+                      'Suggested Colors',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -215,7 +215,7 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
 
                     if (_suggestedColors.isEmpty && !_isLoadingColors)
                       const Text(
-                        'Saisissez un nom ou appuyez sur la palette pour générer des couleurs.',
+                        'Type a name or tap the palette icon to generate colors.',
                         style: TextStyle(color: AppColors.textMuted),
                       ),
 
@@ -223,60 +223,60 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                       duration: const Duration(milliseconds: 300),
                       child: _isLoadingColors
                           ? const Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(16.0),
-                                child: CircularProgressIndicator(),
-                              ),
-                            )
+                        child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
                           : GridView.builder(
-                              key: ValueKey(_suggestedColors.length),
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 5,
-                                crossAxisSpacing: 12,
-                                mainAxisSpacing: 12,
-                                childAspectRatio: 1,
-                              ),
-                              itemCount: _suggestedColors.length,
-                              itemBuilder: (context, index) {
-                                final color = _suggestedColors[index];
-                                final isSelected = color == _selectedColor;
-                                return GestureDetector(
-                                  onTap: () {
-                                    setState(() => _selectedColor = color);
-                                  },
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    decoration: BoxDecoration(
-                                      color: color,
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        if (isSelected)
-                                          BoxShadow(
-                                            color: color.withValues(alpha: 0.5),
-                                            blurRadius: 12,
-                                            spreadRadius: 2,
-                                          ),
-                                      ],
-                                      border: isSelected
-                                          ? Border.all(color: Colors.white, width: 4)
-                                          : null,
+                        key: ValueKey(_suggestedColors.length),
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 5,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 1,
+                        ),
+                        itemCount: _suggestedColors.length,
+                        itemBuilder: (context, index) {
+                          final color = _suggestedColors[index];
+                          final isSelected = color == _selectedColor;
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() => _selectedColor = color);
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  if (isSelected)
+                                    BoxShadow(
+                                      color: color.withValues(alpha: 0.5),
+                                      blurRadius: 12,
+                                      spreadRadius: 2,
                                     ),
-                                    child: isSelected
-                                        ? const Icon(Icons.check, color: Colors.white, size: 32)
-                                        : null,
-                                  ),
-                                );
-                              },
+                                ],
+                                border: isSelected
+                                    ? Border.all(color: Colors.white, width: 4)
+                                    : null,
+                              ),
+                              child: isSelected
+                                  ? const Icon(Icons.check, color: Colors.white, size: 32)
+                                  : null,
                             ),
+                          );
+                        },
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
 
-            // Bouton Enregistrer
+            // Save button
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -303,7 +303,7 @@ class _AddCategoryComponentState extends State<AddCategoryComponent> {
                     elevation: 0,
                   ),
                   child: const Text(
-                    'Enregistrer',
+                    'Save',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,

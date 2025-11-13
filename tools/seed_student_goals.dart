@@ -21,7 +21,8 @@ Future<void> main(List<String> args) async {
     print('Initialisation DB (sqflite ffi) ...');
 
     final dbPath = await databaseFactory.getDatabasesPath();
-    final path = p.join(dbPath, 'goals.db');
+    // Utilise maintenant la base partagée finance_dashboard.db
+    final path = p.join(dbPath, 'finance_dashboard.db');
     print('DB path = $path');
     final db = await databaseFactory.openDatabase(path);
 
@@ -103,6 +104,42 @@ Future<void> main(List<String> args) async {
         priority: 'medium',
         description: 'Short-term emergency buffer for unexpected expenses',
         emoji: '🛟',
+      ),
+      Goal(
+        id: 'student_${now.millisecondsSinceEpoch}_6',
+        title: 'Scholarship application prep',
+        category: 'student',
+        target: 150.0,
+        current: 0.0,
+        deadline: _fmtDate(now.add(const Duration(days: 25))),
+        createdAt: now,
+        priority: 'medium',
+        description: 'Cover printing, certification, and mailing costs for scholarship applications',
+        emoji: '📝',
+      ),
+      Goal(
+        id: 'student_${now.millisecondsSinceEpoch}_7',
+        title: 'Graduation ceremony costs',
+        category: 'student',
+        target: 300.0,
+        current: 40.0,
+        deadline: _fmtDate(now.add(const Duration(days: 240))),
+        createdAt: now,
+        priority: 'low',
+        description: 'Gown rental, photos, and graduation fees',
+        emoji: '🎓',
+      ),
+      Goal(
+        id: 'student_${now.millisecondsSinceEpoch}_8',
+        title: 'Online course certification',
+        category: 'student',
+        target: 200.0,
+        current: 0.0,
+        deadline: _fmtDate(now.add(const Duration(days: 75))),
+        createdAt: now,
+        priority: 'medium',
+        description: 'Pay for a specialized online certification to boost CV',
+        emoji: '💻',
       ),
     ];
 

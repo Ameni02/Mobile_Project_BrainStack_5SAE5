@@ -2,53 +2,22 @@
 
 import 'dart:convert';
 
-import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../DB/DB.dart';
 import '../models/goal_model.dart';
 
 /// Service SQLite pour persister uniquement les Financial Goals.
-/// Stocke une table `goals` avec une colonne `data` qui contient le JSON complet
-/// du Goal (y compris milestones et contributions). Les opérations CRUD sont
-/// exposées en tant que méthodes async.
+/// Utilise la base partagée définie dans DB.dart (finance_dashboard.db)
+/// avec une table `goals` dont la colonne `data` contient le JSON complet.
 class GoalDbService {
   static final GoalDbService instance = GoalDbService._init();
-  static Database? _database;
 
   GoalDbService._init();
 
   Future<Database> get database async {
-    if (_database != null) return _database!;
-    _database = await _initDB('goals.db');
-    return _database!;
-  }
-
-  Future<Database> _initDB(String fileName) async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, fileName);
-    return await openDatabase(
-      path,
-      version: 1,
-      onCreate: _createDB,
-    );
-  }
-
-  Future _createDB(Database db, int version) async {
-    await db.execute('''
-      CREATE TABLE goals (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        category TEXT,
-        target REAL NOT NULL,
-        current REAL NOT NULL,
-        deadline TEXT,
-        createdAt TEXT,
-        priority TEXT,
-        description TEXT,
-        emoji TEXT,
-        data TEXT NOT NULL
-      )
-    ''');
+    // Récupère la base partagée
+    return await DB.db;
   }
 
   Future<List<Goal>> fetchAllGoals() async {
@@ -116,10 +85,8 @@ class GoalDbService {
     await updateGoal(updated);
   }
 
+  // No-op: la base partagée est gérée globalement par DB.db
   Future<void> close() async {
-    final db = await instance.database;
-    await db.close();
-    _database = null;
+    return;
   }
 }
-

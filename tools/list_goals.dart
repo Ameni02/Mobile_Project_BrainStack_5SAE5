@@ -12,7 +12,7 @@ Future<void> main() async {
   databaseFactory = databaseFactoryFfi;
 
   final dbPath = await databaseFactory.getDatabasesPath();
-  final path = p.join(dbPath, 'goals.db');
+  final path = p.join(dbPath, 'finance_dashboard.db');
   print('DB path = $path');
 
   final db = await databaseFactory.openDatabase(path);
@@ -34,4 +34,3 @@ Future<void> main() async {
 
   await db.close();
 }
-
