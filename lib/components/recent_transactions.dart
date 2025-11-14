@@ -14,6 +14,7 @@ class RecentTransactions extends StatefulWidget {
 
 class _RecentTransactionsState extends State<RecentTransactions> {
   List<Transaction> transactions = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -23,13 +24,37 @@ class _RecentTransactionsState extends State<RecentTransactions> {
 
   Future<void> _loadTransactions() async {
     await TransactionData.loadTransactions();
-    setState(() {
-      transactions = TransactionData.allTransactions;
-    });
+    if (mounted) {
+      setState(() {
+        transactions = TransactionData.allTransactions;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.borderLight),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.shadowLight,
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     double totalExpenses = TransactionData.totalExpenses;
     double totalRevenue = TransactionData.totalRevenue;
 

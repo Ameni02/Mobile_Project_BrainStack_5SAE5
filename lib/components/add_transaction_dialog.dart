@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../models/transaction_data.dart';
@@ -106,10 +107,49 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
       // Send Twilio notification for expenses (best-effort)
       if (newTransaction.type == TransactionType.expense) {
         try {
-          // Note: configure TwilioService.* static fields with real credentials
-          await TwilioService.sendExpenseNotification(newTransaction);
-        } catch (e) {
-          debugPrint('Failed to send Twilio SMS: $e');
+          if (kDebugMode) {
+            debugPrint('Attempting to send Twilio notification for expense...');
+          }
+          
+          final smsSent = await TwilioService.sendExpenseNotification(newTransaction);
+          
+          if (mounted) {
+            if (smsSent) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('✅ Expense notification sent via SMS'),
+                  backgroundColor: AppColors.success,
+                  duration: Duration(seconds: 3),
+                ),
+              );
+            } else {
+              // Always show error so user knows SMS failed
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('⚠️ Failed to send SMS notification. Check console for details.'),
+                  backgroundColor: AppColors.warning,
+                  duration: Duration(seconds: 4),
+                ),
+              );
+              if (kDebugMode) {
+                debugPrint('❌ SMS notification failed - check Twilio credentials and network connection');
+              }
+            }
+          }
+        } catch (e, stackTrace) {
+          if (kDebugMode) {
+            debugPrint('❌ Exception sending Twilio SMS: $e');
+            debugPrint('❌ Stack trace: $stackTrace');
+          }
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('❌ Error sending SMS: ${e.toString()}'),
+                backgroundColor: AppColors.expense,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
         }
       }
 
@@ -160,10 +200,15 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
               constraints: const BoxConstraints(maxWidth: 420, maxHeight: 640),
               child: Material(
                 color: AppColors.card,
-                elevation: 12,
-                borderRadius: BorderRadius.circular(16),
+                elevation: 16,
+                borderRadius: BorderRadius.circular(24),
+                shadowColor: Colors.black.withOpacity(0.2),
                 child: Container(
                   padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: AppColors.borderLight, width: 1),
+                  ),
                   child: Form(
                     key: _formKey,
                     autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -173,16 +218,51 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
                       children: [
                         Row(
                           children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    AppColors.primary.withOpacity(0.15),
+                                    AppColors.accent.withOpacity(0.1),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.add_circle_outline,
+                                color: AppColors.primary,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
                             const Expanded(
                               child: Text(
                                 'Add Transaction',
-                                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                  letterSpacing: -0.5,
+                                ),
                               ),
                             ),
-                            IconButton(
-                              onPressed: widget.onClose,
-                              icon: const Icon(Icons.close, color: Colors.grey),
-                              tooltip: 'Close',
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: AppColors.muted,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: InkWell(
+                                onTap: widget.onClose,
+                                child: const Icon(
+                                  Icons.close,
+                                  color: AppColors.textSecondary,
+                                  size: 20,
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -190,26 +270,43 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
 
                         // Tabs (styled pill indicator, equal width)
                         Container(
+                          padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF3F4F6),
-                            borderRadius: BorderRadius.circular(10),
+                            color: AppColors.muted,
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: SizedBox(
                             height: 44,
                             child: TabBar(
                               controller: _tabController,
                               indicator: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(8),
+                                color: AppColors.card,
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.shadowLight,
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 1),
+                                  ),
+                                ],
                               ),
                               indicatorSize: TabBarIndicatorSize.tab,
                               labelPadding: EdgeInsets.zero,
                               indicatorPadding: const EdgeInsets.all(4),
-                              labelColor: AppColors.primaryForeground,
+                              labelColor: AppColors.textPrimary,
                               unselectedLabelColor: AppColors.textSecondary,
-                              tabs: [
-                                Tab(child: Center(child: Text('Expense', style: const TextStyle(fontWeight: FontWeight.w600)))),
-                                Tab(child: Center(child: Text('Revenue', style: const TextStyle(fontWeight: FontWeight.w600)))),
+                              labelStyle: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                              unselectedLabelStyle: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                              ),
+                              dividerColor: Colors.transparent,
+                              tabs: const [
+                                Tab(child: Center(child: Text('Expense'))),
+                                Tab(child: Center(child: Text('Revenue'))),
                               ],
                             ),
                           ),
@@ -245,11 +342,25 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
         TextFormField(
           controller: _amountController,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Amount',
+          decoration: InputDecoration(
+            labelText: 'Amount (TND)',
             hintText: '0.00',
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            prefixIcon: const Icon(Icons.attach_money, color: AppColors.textSecondary),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.borderLight),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.borderLight),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.primary, width: 2),
+            ),
+            filled: true,
+            fillColor: AppColors.muted.withOpacity(0.5),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           ),
           validator: (value) {
             if (value == null || value.isEmpty) return 'Please enter an amount';
@@ -262,11 +373,25 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
         const SizedBox(height: 16),
         TextFormField(
           controller: _descriptionController,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Description',
             hintText: 'What did you spend on?',
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            prefixIcon: const Icon(Icons.description, color: AppColors.textSecondary),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.borderLight),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.borderLight),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.primary, width: 2),
+            ),
+            filled: true,
+            fillColor: AppColors.muted.withOpacity(0.5),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           ),
           validator: (value) {
             if (value == null || value.isEmpty) return 'Please enter a description';
@@ -281,10 +406,24 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
               : _revenueCategories.contains(_selectedCategory))
               ? _selectedCategory
               : null,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Category',
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            prefixIcon: const Icon(Icons.category, color: AppColors.textSecondary),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.borderLight),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.borderLight),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.primary, width: 2),
+            ),
+            filled: true,
+            fillColor: AppColors.muted.withOpacity(0.5),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           ),
           hint: const Text('Select category'),
           items: (_tabController.index == 0
@@ -322,15 +461,20 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
                   ),
                 ),
               if (_receiptPath != null) const SizedBox(width: 12),
-              ElevatedButton.icon(
-                onPressed: _pickReceipt,
-                icon: const Icon(Icons.receipt_long),
-                label: Text(_receiptPath == null ? 'Add Receipt' : 'Change Receipt'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.primaryForeground,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _pickReceipt,
+                  icon: const Icon(Icons.receipt_long, size: 18),
+                  label: Text(_receiptPath == null ? 'Add Receipt' : 'Change Receipt'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
                 ),
               ),
             ],
@@ -355,18 +499,26 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
               _handleSubmit('expense');
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.primaryForeground,
+              backgroundColor: AppColors.expense,
+              foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
               ),
+              elevation: 0,
             ),
             child: _isSubmitting
                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Text(
-              'Add Expense',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                : const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.add_circle, size: 20),
+                SizedBox(width: 8),
+                Text(
+                  'Add Expense',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+              ],
             ),
           ),
         ),
@@ -382,26 +534,56 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
           TextFormField(
             controller: _amountController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Amount',
+            decoration: InputDecoration(
+              labelText: 'Amount (TND)',
               hintText: '0.00',
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              prefixIcon: const Icon(Icons.attach_money, color: AppColors.textSecondary),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.borderLight),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.borderLight),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+              ),
+              filled: true,
+              fillColor: AppColors.muted.withOpacity(0.5),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) return 'Please enter an amount';
-              if (double.tryParse(value) == null) return 'Invalid amount';
+              final parsed = double.tryParse(value.replaceAll(',', '.'));
+              if (parsed == null) return 'Invalid amount';
+              if (parsed <= 0) return 'Amount must be greater than 0';
               return null;
             },
           ),
           const SizedBox(height: 16),
           TextFormField(
             controller: _descriptionController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Description',
               hintText: 'What did you earn from?',
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              prefixIcon: const Icon(Icons.description, color: AppColors.textSecondary),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.borderLight),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.borderLight),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+              ),
+              filled: true,
+              fillColor: AppColors.muted.withOpacity(0.5),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             validator: (value) =>
             value == null || value.isEmpty ? 'Please enter a description' : null,
@@ -409,10 +591,24 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
             value: _revenueCategories.contains(_selectedCategory) ? _selectedCategory : null,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Category',
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              prefixIcon: const Icon(Icons.category, color: AppColors.textSecondary),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.borderLight),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.borderLight),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+              ),
+              filled: true,
+              fillColor: AppColors.muted.withOpacity(0.5),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             hint: const Text('Select category'),
             items: _revenueCategories
@@ -436,18 +632,38 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () => _handleSubmit('revenue'),
+              onPressed: _isSubmitting
+                  ? null
+                  : () {
+                if (!_formKey.currentState!.validate() || _selectedCategory.isEmpty) {
+                  if (_selectedCategory.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a category')));
+                  }
+                  return;
+                }
+                _handleSubmit('revenue');
+              },
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.primaryForeground,
+                backgroundColor: AppColors.revenue,
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                 ),
+                elevation: 0,
               ),
-              child: const Text(
-                'Add Revenue',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              child: _isSubmitting
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add_circle, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'Add Revenue',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ],
               ),
             ),
           ),
@@ -462,10 +678,23 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
       case 'Salary':
         return [
           TextFormField(
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Company Name',
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.borderLight),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.borderLight),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+              ),
+              filled: true,
+              fillColor: AppColors.muted.withOpacity(0.5),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             onChanged: (value) => _extraFields['company'] = value,
           ),
@@ -473,19 +702,45 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
       case 'Freelance':
         return [
           TextFormField(
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Client Name',
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.borderLight),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.borderLight),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+              ),
+              filled: true,
+              fillColor: AppColors.muted.withOpacity(0.5),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             onChanged: (value) => _extraFields['client'] = value,
           ),
           const SizedBox(height: 16),
           TextFormField(
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Project Title',
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.borderLight),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.borderLight),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+              ),
+              filled: true,
+              fillColor: AppColors.muted.withOpacity(0.5),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             onChanged: (value) => _extraFields['project'] = value,
           ),
@@ -493,19 +748,45 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
       case 'Investment':
         return [
           TextFormField(
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Investment Type',
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.borderLight),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.borderLight),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+              ),
+              filled: true,
+              fillColor: AppColors.muted.withOpacity(0.5),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             onChanged: (value) => _extraFields['type'] = value,
           ),
           const SizedBox(height: 16),
           TextFormField(
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Return Rate (%)',
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.borderLight),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.borderLight),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+              ),
+              filled: true,
+              fillColor: AppColors.muted.withOpacity(0.5),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             keyboardType: TextInputType.number,
             onChanged: (value) => _extraFields['rate'] = value,
@@ -514,19 +795,45 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> with Ticker
       case 'Business':
         return [
           TextFormField(
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Business Name',
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.borderLight),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.borderLight),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+              ),
+              filled: true,
+              fillColor: AppColors.muted.withOpacity(0.5),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             onChanged: (value) => _extraFields['business'] = value,
           ),
           const SizedBox(height: 16),
           TextFormField(
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Transaction ID',
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.borderLight),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.borderLight),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+              ),
+              filled: true,
+              fillColor: AppColors.muted.withOpacity(0.5),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             onChanged: (value) => _extraFields['transactionId'] = value,
           ),

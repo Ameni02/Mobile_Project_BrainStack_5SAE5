@@ -5,7 +5,6 @@ import '../models/analytics_data.dart';
 import '../models/transaction_data.dart';
 import '../theme/app_colors.dart';
 import '../components/expense_chatbot.dart';
-import '../services/alpha_vantage_service.dart';
 import '../constants/currency.dart';
 
 class AnalyticsPage extends StatefulWidget {
@@ -22,7 +21,6 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
   List<CategoryData> _categoryData = [];
   double _totalExpenses = 0;
   double _totalRevenue = 0;
-  bool _isGenerating = false;
   bool _showInlineChat = false;
 
   @override
@@ -183,57 +181,26 @@ class _AnalyticsPageState extends State<AnalyticsPage> with TickerProviderStateM
               ),
             ],
           ),
-          child: Row(
-            children: [
-              IconButton(
-                onPressed: () {
-                  // open as dialog on larger screens
-                  if (MediaQuery.of(context).size.width > 600) {
-                    showDialog(context: context, builder: (_) => const ExpenseChatbot());
-                  } else {
-                    // on small/mobile screens open as full-screen bottom sheet
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (ctx) => SizedBox(
-                        height: MediaQuery.of(ctx).size.height * 0.95,
-                        child: const ExpenseChatbot(),
-                      ),
-                    );
-                  }
-                },
-                // single visible chat entry moved to header subtitle buttons (keeps header compact)
-                icon: const Icon(Icons.chat_bubble_outline, color: AppColors.primary),
-                tooltip: 'Expense Helper',
-              ),
-              IconButton(
-                onPressed: _isGenerating
-                    ? null
-                    : () async {
-                  setState(() {
-                    _isGenerating = true;
-                  });
-                  try {
-                    await AlphaVantageService.persistGeneratedTransactions();
-                    await TransactionData.loadTransactions();
-                    _computeAnalytics();
-                    if (!mounted) return;
-                    final count = TransactionData.allTransactions.length;
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Imported transactions. Total local: $count')));
-                  } catch (e) {
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to import transactions: $e')));
-                  } finally {
-                    if (!mounted) return;
-                    setState(() {
-                      _isGenerating = false;
-                    });
-                  }
-                },
-                icon: _isGenerating ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.cloud_download_outlined, color: AppColors.primary),
-                tooltip: 'Generate & import transactions',
-              ),
-            ],
+          child: IconButton(
+            onPressed: () {
+              // open as dialog on larger screens
+              if (MediaQuery.of(context).size.width > 600) {
+                showDialog(context: context, builder: (_) => const ExpenseChatbot());
+              } else {
+                // on small/mobile screens open as full-screen bottom sheet
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  builder: (ctx) => SizedBox(
+                    height: MediaQuery.of(ctx).size.height * 0.95,
+                    child: const ExpenseChatbot(),
+                  ),
+                );
+              }
+            },
+            // single visible chat entry moved to header subtitle buttons (keeps header compact)
+            icon: const Icon(Icons.chat_bubble_outline, color: AppColors.primary),
+            tooltip: 'Expense Helper',
           ),
         ),
       ],
