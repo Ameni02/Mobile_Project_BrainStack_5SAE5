@@ -12,6 +12,22 @@ class BalanceCard extends StatefulWidget {
 
 class _BalanceCardState extends State<BalanceCard> {
   bool _showBalance = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    await TransactionData.loadTransactions();
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -104,7 +120,9 @@ class _BalanceCardState extends State<BalanceCard> {
 
                 // Balance amount
                 Text(
-                  _showBalance ? formatTnd(TransactionData.totalRevenue - TransactionData.totalExpenses) : '••••••',
+                  _isLoading
+                      ? 'Loading...'
+                      : (_showBalance ? formatTnd(TransactionData.totalRevenue - TransactionData.totalExpenses) : '••••••'),
                   style: const TextStyle(
                     fontSize: 36,
                     fontWeight: FontWeight.bold,

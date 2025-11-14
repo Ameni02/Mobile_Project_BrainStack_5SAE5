@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import '../models/transaction_data.dart';
 import '../components/add_transaction_dialog.dart';
 import '../services/exchange_rate_service.dart';
@@ -60,7 +61,8 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
           ),
           AddTransactionDialog(
             isOpen: _showAddTransactionDialog,
-            onClose: () {
+            onClose: () async {
+              await TransactionData.loadTransactions();
               setState(() {
                 _showAddTransactionDialog = false;
               });
@@ -91,6 +93,8 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
             children: [
               Row(
                 children: [
+
+                  const SizedBox(width: 12),
                   const Expanded(
                     child: Text(
                       "Transactions",
@@ -511,6 +515,24 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
                       ),
                     ),
                   ),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppColors.muted,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: InkWell(
+                      onTap: () {
+                        _showDeleteConfirmation(transaction);
+                      },
+                      child: const Icon(
+                        Icons.delete_outlined,
+                        color: AppColors.expense,
+                        size: 16,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -544,99 +566,145 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
               });
             }
 
+            final receiptPath = transaction.extraFields?['receiptPath'] as String?;
+
             return AlertDialog(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
               ),
               title: Row(
                 children: [
-                  Icon(
-                    transaction.icon,
-                    color: Color(int.parse(transaction.color.replaceAll('#', '0xFF'))),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Color(int.parse(transaction.color.replaceAll('#', '0xFF'))).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      transaction.icon,
+                      color: Color(int.parse(transaction.color.replaceAll('#', '0xFF'))),
+                      size: 24,
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  Text(transaction.name),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      transaction.name,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
                 ],
               ),
               content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildDetailRow("Category", transaction.category),
-                    _buildDetailRow("Date", transaction.date),
-                    _buildDetailRow("Amount", "${CurrencyConfig.symbol}${transaction.amount.toStringAsFixed(2)}"),
-                    const SizedBox(height: 16),
-
-                    // ✅ Section conversion de devise
-                    const Text(
-                      "Currency Conversion",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Dropdown responsive
-                    DropdownButton<String>(
-                      isExpanded: true, // prend toute la largeur
-                      value: selectedCurrency,
-                      items: const [
-                        DropdownMenuItem(value: "EUR", child: Text("🇪🇺 EUR - Euro")),
-                        DropdownMenuItem(value: "TND", child: Text("🇹🇳 TND - Dinar tunisien")),
-                        DropdownMenuItem(value: "GBP", child: Text("🇬🇧 GBP - Livre sterling")),
-                        DropdownMenuItem(value: "JPY", child: Text("🇯🇵 JPY - Yen japonais")),
-                        DropdownMenuItem(value: "USD", child: Text("🇺🇸 USD - Dollar américain")),
-                        DropdownMenuItem(value: "CAD", child: Text("🇨🇦 CAD - Dollar canadien")),
-                        DropdownMenuItem(value: "CHF", child: Text("🇨🇭 CHF - Franc suisse")),
-                        DropdownMenuItem(value: "SEK", child: Text("🇸🇪 SEK - Couronne suédoise")),
-                        DropdownMenuItem(value: "SAR", child: Text("🇸🇦 SAR - Riyal saoudien")),
-                        DropdownMenuItem(value: "MAD", child: Text("🇲🇦 MAD - Dirham marocain")),
-                        DropdownMenuItem(value: "DZD", child: Text("🇩🇿 DZD - Dinar algérien")),
-                        DropdownMenuItem(value: "EGP", child: Text("🇪🇬 EGP - Livre égyptienne")),
-                        DropdownMenuItem(value: "CNY", child: Text("🇨🇳 CNY - Yuan chinois")),
-                        DropdownMenuItem(value: "INR", child: Text("🇮🇳 INR - Roupie indienne")),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 400),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildDetailRow("Category", transaction.category),
+                      _buildDetailRow("Date", transaction.date),
+                      _buildDetailRow("Amount", formatTnd(transaction.amount)),
+                      if (receiptPath != null && receiptPath.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        const Text(
+                          "Receipt",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          constraints: const BoxConstraints(maxHeight: 200),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.borderLight),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.file(
+                              File(receiptPath),
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
                       ],
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() {
-                            selectedCurrency = value;
-                            convertedAmount = null;
-                          });
-                        }
-                      },
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    // Bouton Convert sur nouvelle ligne, full width
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
+                      const SizedBox(height: 16),
+                      // ✅ Section conversion de devise
+                      const Text(
+                        "Currency Conversion",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Dropdown responsive
+                      DropdownButton<String>(
+                        isExpanded: true, // prend toute la largeur
+                        value: selectedCurrency,
+                        items: const [
+                          DropdownMenuItem(value: "EUR", child: Text("🇪🇺 EUR - Euro")),
+                          DropdownMenuItem(value: "TND", child: Text("🇹🇳 TND - Dinar tunisien")),
+                          DropdownMenuItem(value: "GBP", child: Text("🇬🇧 GBP - Livre sterling")),
+                          DropdownMenuItem(value: "JPY", child: Text("🇯🇵 JPY - Yen japonais")),
+                          DropdownMenuItem(value: "USD", child: Text("🇺🇸 USD - Dollar américain")),
+                          DropdownMenuItem(value: "CAD", child: Text("🇨🇦 CAD - Dollar canadien")),
+                          DropdownMenuItem(value: "CHF", child: Text("🇨🇭 CHF - Franc suisse")),
+                          DropdownMenuItem(value: "SEK", child: Text("🇸🇪 SEK - Couronne suédoise")),
+                          DropdownMenuItem(value: "SAR", child: Text("🇸🇦 SAR - Riyal saoudien")),
+                          DropdownMenuItem(value: "MAD", child: Text("🇲🇦 MAD - Dirham marocain")),
+                          DropdownMenuItem(value: "DZD", child: Text("🇩🇿 DZD - Dinar algérien")),
+                          DropdownMenuItem(value: "EGP", child: Text("🇪🇬 EGP - Livre égyptienne")),
+                          DropdownMenuItem(value: "CNY", child: Text("🇨🇳 CNY - Yuan chinois")),
+                          DropdownMenuItem(value: "INR", child: Text("🇮🇳 INR - Roupie indienne")),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() {
+                              selectedCurrency = value;
+                              convertedAmount = null;
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      // Bouton Convert sur nouvelle ligne, full width
+                      ElevatedButton(
                         onPressed: convert,
                         child: const Text("Convert"),
                       ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Résultat conversion
-                    if (isLoading)
-                      const Center(child: CircularProgressIndicator())
-                    else if (convertedAmount != null)
-                      Text(
-                        "→ ${convertedAmount!.toStringAsFixed(2)} $selectedCurrency",
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
+                      const SizedBox(height: 12),
+                      // Résultat conversion
+                      if (isLoading)
+                        const Center(child: CircularProgressIndicator())
+                      else if (convertedAmount != null)
+                        Text(
+                          "→ ${convertedAmount!.toStringAsFixed(2)} $selectedCurrency",
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
+                          ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text("Close", style: TextStyle(color: Colors.blue)),
+                  child: const Text(
+                    "Close",
+                    style: TextStyle(color: AppColors.primary),
+                  ),
                 ),
               ],
             );
@@ -657,36 +725,154 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
       context: context,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text("Edit Transaction"),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.primary.withOpacity(0.15),
+                      AppColors.accent.withOpacity(0.1),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.edit_outlined,
+                  color: AppColors.primary,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  "Edit Transaction",
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
           content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(labelText: "Name"),
-                ),
-                TextField(
-                  controller: categoryController,
-                  decoration: const InputDecoration(labelText: "Category"),
-                ),
-                TextField(
-                  controller: amountController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: "Amount"),
-                ),
-                TextField(
-                  controller: dateController,
-                  decoration: const InputDecoration(labelText: "Date"),
-                ),
-              ],
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: InputDecoration(
+                      labelText: "Name",
+                      prefixIcon: const Icon(Icons.description, color: AppColors.textSecondary),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.borderLight),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.borderLight),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                      ),
+                      filled: true,
+                      fillColor: AppColors.muted.withOpacity(0.5),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: categoryController,
+                    decoration: InputDecoration(
+                      labelText: "Category",
+                      prefixIcon: const Icon(Icons.category, color: AppColors.textSecondary),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.borderLight),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.borderLight),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                      ),
+                      filled: true,
+                      fillColor: AppColors.muted.withOpacity(0.5),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: amountController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: "Amount (TND)",
+                      prefixIcon: const Icon(Icons.attach_money, color: AppColors.textSecondary),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.borderLight),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.borderLight),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                      ),
+                      filled: true,
+                      fillColor: AppColors.muted.withOpacity(0.5),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: dateController,
+                    decoration: InputDecoration(
+                      labelText: "Date",
+                      prefixIcon: const Icon(Icons.calendar_today, color: AppColors.textSecondary),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.borderLight),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.borderLight),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                      ),
+                      filled: true,
+                      fillColor: AppColors.muted.withOpacity(0.5),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
+              child: const Text(
+                "Cancel",
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -695,7 +881,7 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
                   name: nameController.text,
                   category: categoryController.text,
                   date: dateController.text,
-                  amount: double.tryParse(amountController.text) ?? transaction.amount,
+                  amount: double.tryParse(amountController.text.replaceAll(',', '.')) ?? transaction.amount,
                   icon: transaction.icon,
                   color: transaction.color,
                   type: transaction.type,
@@ -703,11 +889,32 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
                 );
 
                 await TransactionData.updateTransaction(updatedTransaction);
+                await TransactionData.loadTransactions();
 
-                setState(() {}); // Refresh UI
-                Navigator.pop(context);
+                if (mounted) {
+                  setState(() {}); // Refresh UI
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Transaction updated successfully'),
+                      backgroundColor: AppColors.success,
+                    ),
+                  );
+                }
               },
-              child: const Text("Save"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              child: const Text(
+                "Save",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
             ),
           ],
         );
@@ -716,26 +923,71 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
   }
 
 
-  void updateRevenueExample() async {
-    // Cherche la transaction à modifier
-    final transaction = TransactionData.revenueTransactions.firstWhere(
-          (t) => t.id == 4, // ex : l’ID du salaire
+  void _showDeleteConfirmation(Transaction transaction) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.expense, size: 28),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Delete Transaction',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to delete "${transaction.name}"?\n\nThis action cannot be undone.',
+          style: const TextStyle(
+            fontSize: 15,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await TransactionData.deleteTransaction(transaction.id);
+              await TransactionData.loadTransactions();
+              if (mounted) {
+                setState(() {});
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Transaction deleted successfully'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.expense,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
     );
-
-    // Crée une nouvelle version mise à jour
-    final updatedTransaction = Transaction(
-      id: transaction.id, // garder le même ID
-      name: "Updated Salary Deposit",
-      category: "Income",
-      date: DateTime.now().toString(),
-      amount: 5000.0, // nouveau montant
-      icon: Icons.work,
-      color: "#65C4A3",
-      type: TransactionType.revenue,
-    );
-
-    // Appelle la méthode d’update
-    await TransactionData.updateTransaction(updatedTransaction);
   }
 
 

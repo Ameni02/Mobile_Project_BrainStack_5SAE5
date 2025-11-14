@@ -5,13 +5,18 @@ import 'pages/login_page.dart';
 // sqflite_common_ffi removed for mobile builds; use platform-native sqflite plugin.
 import 'theme/app_colors.dart';
 import 'models/goals_data.dart';
+import 'models/transaction_data.dart';
+import 'DB/DB.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await GoalsData.load();
-  // 🔹 Charger les variables d’environnement (ex: OPENWEATHER_API_KEY)
+  // 🔹 Charger les variables d'environnement (ex: OPENWEATHER_API_KEY)
   await dotenv.load(fileName: ".env");
-  // 🔹 Lancer l’application une fois que tout est prêt
+  // 🔹 Initialize database and load transactions before app starts
+  await DB.db; // Initialize database
+  await TransactionData.initDb(); // Load transactions
+  // 🔹 Lancer l'application une fois que tout est prêt
   runApp(const MyApp());
 }
 
