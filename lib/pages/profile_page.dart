@@ -84,7 +84,7 @@ class _ProfilePageState extends State<ProfilePage>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Profile",
+              "Journal",
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
