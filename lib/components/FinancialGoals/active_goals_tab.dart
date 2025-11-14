@@ -17,13 +17,11 @@ class ActiveGoalsTab extends StatelessWidget {
     required this.onRefresh,
   });
 
-  List<Goal> get _filteredGoals {
-    var goals = GoalsData.goals.where((g) => !g.isArchived && !g.isCompleted).toList();
-
+  List<Goal> _filtered(List<Goal> src) {
+    var goals = src.where((g) => !g.isArchived && !g.isCompleted).toList();
     if (filterCategory != 'All') {
       goals = goals.where((g) => g.category == filterCategory).toList();
     }
-
     switch (sortBy) {
       case 'progress':
         goals.sort((a, b) => b.progress.compareTo(a.progress));
@@ -35,51 +33,53 @@ class ActiveGoalsTab extends StatelessWidget {
       default:
         goals.sort((a, b) => a.daysRemaining.compareTo(b.daysRemaining));
     }
-
     return goals;
   }
 
   @override
   Widget build(BuildContext context) {
-    final activeGoals = _filteredGoals;
-
-    if (activeGoals.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+    return ValueListenableBuilder<List<Goal>>(
+      valueListenable: GoalsData.goalsNotifier,
+      builder: (context, list, _) {
+        final activeGoals = _filtered(list);
+        if (activeGoals.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.flag_outlined, size: 80, color: Colors.grey[300]),
+                const SizedBox(height: 16),
+                Text(
+                  "No Active Goals",
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "Start your savings journey today!",
+                  style: TextStyle(color: Colors.grey[500]),
+                ),
+              ],
+            ),
+          );
+        }
+        return ListView(
+          padding: const EdgeInsets.all(16),
           children: [
-            Icon(Icons.flag_outlined, size: 80, color: Colors.grey[300]),
+            const QuickStatsCard(),
             const SizedBox(height: 16),
-            Text(
-              "No Active Goals",
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              "Start your savings journey today!",
-              style: TextStyle(color: Colors.grey[500]),
-            ),
+            const SmartSuggestionsCard(),
+            const SizedBox(height: 24),
+            ...activeGoals.map((goal) => EnhancedGoalCard(
+                  goal: goal,
+                  onRefresh: onRefresh,
+                )),
           ],
-        ),
-      );
-    }
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const QuickStatsCard(),
-        const SizedBox(height: 16),
-        const SmartSuggestionsCard(),
-        const SizedBox(height: 24),
-        ...activeGoals.map((goal) => EnhancedGoalCard(
-          goal: goal,
-          onRefresh: onRefresh,
-        )),
-      ],
+        );
+      },
     );
   }
 }

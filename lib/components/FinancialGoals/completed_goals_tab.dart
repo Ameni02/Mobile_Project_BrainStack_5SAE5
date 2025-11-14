@@ -10,36 +10,41 @@ class CompletedGoalsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final completedGoals = GoalsData.goals.where((g) => g.isCompleted).toList();
+    return ValueListenableBuilder(
+      valueListenable: GoalsData.goalsNotifier,
+      builder: (context, List list, _) {
+        final completedGoals = list.where((g) => g.isCompleted).toList();
 
-    if (completedGoals.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        if (completedGoals.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.emoji_events_outlined, size: 64, color: Colors.grey[300]),
+                const SizedBox(height: 16),
+                Text(
+                  "No completed goals yet",
+                  style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "Keep working on your active goals!",
+                  style: TextStyle(color: Colors.grey[500]),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView(
+          padding: const EdgeInsets.all(16),
           children: [
-            Icon(Icons.emoji_events_outlined, size: 64, color: Colors.grey[300]),
+            AchievementBanner(completedCount: completedGoals.length),
             const SizedBox(height: 16),
-            Text(
-              "No completed goals yet",
-              style: TextStyle(fontSize: 18, color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              "Keep working on your active goals!",
-              style: TextStyle(color: Colors.grey[500]),
-            ),
+            ...completedGoals.map((goal) => CompletedGoalCard(goal: goal)),
           ],
-        ),
-      );
-    }
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        AchievementBanner(completedCount: completedGoals.length),
-        const SizedBox(height: 16),
-        ...completedGoals.map((goal) => CompletedGoalCard(goal: goal)),
-      ],
+        );
+      },
     );
   }
 }

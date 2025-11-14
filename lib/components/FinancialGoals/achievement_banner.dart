@@ -11,9 +11,15 @@ class AchievementBanner extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Colors.purple, Colors.deepPurple],
+          colors: [Color(0xFF4A90E2), Color(0xFF1976D2)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x334A90E2), blurRadius: 12, offset: Offset(0, 4)),
+        ],
       ),
       child: Row(
         children: [

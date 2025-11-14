@@ -18,7 +18,6 @@ class GoalDetailsPage extends StatefulWidget {
 class _GoalDetailsPageState extends State<GoalDetailsPage> {
   late Goal _goal;
   final NumberFormat _moneyFormat = NumberFormat.currency(symbol: CurrencyConfig.symbol, decimalDigits: 2);
-  final String _displayCurrency = 'TND';
 
   @override
   void initState() {
@@ -76,93 +75,124 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
       context: context,
       builder: (context) {
         String? dialogError;
-        return StatefulBuilder(builder: (context, setStateDialog) {
-          String? error = dialogError;
-          return AlertDialog(
-            title: const Text('Edit Goal'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: 'Title')),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: targetCtrl,
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(labelText: 'Target amount'),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: pickedDate == null
-                            ? const Text('No deadline')
-                            : Text(DateFormat.yMMMd().format(pickedDate!)),
-                      ),
-                      TextButton(
-                        onPressed: () async {
-                          final now = DateTime.now();
-                          final d = await showDatePicker(
-                            context: context,
-                            initialDate: pickedDate ?? now,
-                            firstDate: DateTime(now.year - 5),
-                            lastDate: DateTime(now.year + 10),
-                          );
-                          if (d != null) setStateDialog(() => pickedDate = d);
-                        },
-                        child: const Text('Pick date'),
-                      ),
-                      if (pickedDate != null)
-                        IconButton(onPressed: () => setStateDialog(() => pickedDate = null), icon: const Icon(Icons.clear)),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(controller: descCtrl, decoration: const InputDecoration(labelText: 'Notes'), maxLines: 3),
-                  const SizedBox(height: 8),
-                  TextField(controller: emojiCtrl, decoration: const InputDecoration(labelText: 'Emoji')),
-                  if (error != null) ...[
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: const Text('Edit Goal'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: titleCtrl,
+                      decoration: const InputDecoration(labelText: 'Title'),
+                    ),
                     const SizedBox(height: 8),
-                    Text(error, style: const TextStyle(color: Colors.red)),
-                  ]
-                ],
+                    TextField(
+                      controller: targetCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(labelText: 'Target amount'),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: pickedDate == null
+                              ? const Text('No deadline')
+                              : Text(DateFormat.yMMMd().format(pickedDate!)),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            final now = DateTime.now();
+                            final minDate = DateTime(now.year, now.month, now.day);
+                            final safeInitial = (pickedDate ?? now).isBefore(minDate)
+                                ? minDate
+                                : (pickedDate ?? now);
+                            final d = await showDatePicker(
+                              context: context,
+                              initialDate: safeInitial,
+                              firstDate: minDate,
+                              lastDate: DateTime(now.year + 10),
+                            );
+                            if (d != null) setStateDialog(() => pickedDate = d);
+                          },
+                          child: const Text('Pick date'),
+                        ),
+                        if (pickedDate != null)
+                          IconButton(
+                            onPressed: () => setStateDialog(() => pickedDate = null),
+                            icon: const Icon(Icons.clear),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: descCtrl,
+                      maxLines: 3,
+                      decoration: const InputDecoration(labelText: 'Notes'),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: emojiCtrl,
+                      decoration: const InputDecoration(labelText: 'Emoji'),
+                    ),
+                    if (dialogError != null) ...[
+                      const SizedBox(height: 8),
+                      Text(dialogError!, style: const TextStyle(color: Colors.red)),
+                    ],
+                  ],
+                ),
               ),
-            ),
-            actions: [
-              TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-              TextButton(
-                onPressed: () async {
-                  // validate
-                  final t = double.tryParse(targetCtrl.text.replaceAll(',', '.'));
-                  if (titleCtrl.text.trim().isEmpty) {
-                    setStateDialog(() => dialogError = 'Title is required');
-                    return;
-                  }
-                  if (t == null || t < 0) {
-                    setStateDialog(() => dialogError = 'Target must be a positive number');
-                    return;
-                  }
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final t = double.tryParse(targetCtrl.text.replaceAll(',', '.'));
+                    if (titleCtrl.text.trim().isEmpty) {
+                      setStateDialog(() => dialogError = 'Title is required');
+                      return;
+                    }
+                    if (t == null || t <= 0) {
+                      setStateDialog(() => dialogError = 'Target must be a positive number');
+                      return;
+                    }
+                    if (pickedDate != null) {
+                      final todayMidnight = DateTime.now();
+                      if (pickedDate!.isBefore(DateTime(todayMidnight.year, todayMidnight.month, todayMidnight.day))) {
+                        setStateDialog(() => dialogError = 'Deadline must be today or later');
+                        return;
+                      }
+                    }
 
-                  final updated = _goal.copyWith(
-                    title: titleCtrl.text.trim(),
-                    target: t,
-                    description: descCtrl.text.trim(),
-                    emoji: emojiCtrl.text.trim().isEmpty ? _goal.emoji : emojiCtrl.text.trim(),
-                    deadline: pickedDate != null ? DateFormat('yyyy-MM-dd').format(pickedDate!) : _goal.deadline,
-                  );
+                    final updated = _goal.copyWith(
+                      title: titleCtrl.text.trim(),
+                      target: t,
+                      description: descCtrl.text.trim(),
+                      emoji: emojiCtrl.text.trim().isEmpty ? _goal.emoji : emojiCtrl.text.trim(),
+                      deadline: pickedDate != null
+                          ? DateFormat('yyyy-MM-dd').format(pickedDate!)
+                          : _goal.deadline,
+                    );
 
-                  await GoalsData.updateGoal(updated);
-                  await GoalsData.load();
-                  if (mounted) {
-                    setState(() => _goal = updated);
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Goal updated')));
-                  }
-                },
-                child: const Text('Save'),
-              ),
-            ],
-          );
-        });
+                    await GoalsData.updateGoal(updated);
+                    await GoalsData.load();
+                    if (mounted) {
+                      setState(() => _goal = updated);
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Goal updated')),
+                      );
+                    }
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
       },
     );
   }

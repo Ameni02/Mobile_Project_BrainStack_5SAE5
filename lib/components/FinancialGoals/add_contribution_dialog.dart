@@ -46,9 +46,12 @@ class _AddContributionDialogState extends State<AddContributionDialog> {
               ),
               keyboardType: TextInputType.number,
               validator: (value) {
-                if (value!.isEmpty) return "Please enter an amount";
-                if (double.tryParse(value) == null) return "Enter valid number";
-                if (double.parse(value) <= 0) return "Amount must be positive";
+                final raw = value?.trim() ?? '';
+                if (raw.isEmpty) return "Please enter an amount";
+                final parsed = double.tryParse(raw);
+                if (parsed == null) return "Enter valid number";
+                if (parsed <= 0) return "Amount must be positive";
+                if (parsed > 100000000) return "Amount too large";
                 return null;
               },
             ),
@@ -61,6 +64,11 @@ class _AddContributionDialogState extends State<AddContributionDialog> {
                 border: OutlineInputBorder(),
               ),
               maxLines: 2,
+              validator: (value) {
+                final v = value?.trim() ?? '';
+                if (v.length > 120) return 'Note max 120 chars';
+                return null;
+              },
             ),
           ],
         ),
@@ -71,23 +79,20 @@ class _AddContributionDialogState extends State<AddContributionDialog> {
           child: const Text("Cancel"),
         ),
         ElevatedButton(
-          onPressed: () {
+          onPressed: () async {
             if (_formKey.currentState!.validate()) {
               final transaction = GoalTransaction(
                 id: DateTime.now().millisecondsSinceEpoch.toString(),
-                amount: double.parse(_amountController.text),
+                amount: double.parse(_amountController.text.trim()),
                 date: DateTime.now(),
-                note: _noteController.text,
+                note: _noteController.text.trim(),
               );
-
-              GoalsData.addContribution(widget.goal.id, transaction);
-
+              await GoalsData.addContribution(widget.goal.id, transaction);
               Navigator.pop(context);
               widget.onSave();
-
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text("Added TND ${_amountController.text} to ${widget.goal.title}!"),
+                  content: Text("Added TND ${_amountController.text.trim()} to ${widget.goal.title}!"),
                   backgroundColor: Colors.green,
                 ),
               );

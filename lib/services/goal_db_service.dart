@@ -50,23 +50,25 @@ class GoalDbService {
 
   Future<void> updateGoal(Goal goal) async {
     final db = await instance.database;
-    final map = goal.toMap();
+    // recalcul auto completion
+    final autoCompleted = goal.current >= goal.target ? goal.copyWith(isCompleted: true) : goal;
+    final map = autoCompleted.toMap();
     await db.update(
       'goals',
       {
-        'title': goal.title,
-        'category': goal.category,
-        'target': goal.target,
-        'current': goal.current,
-        'deadline': goal.deadline,
-        'createdAt': goal.createdAt.toIso8601String(),
-        'priority': goal.priority,
-        'description': goal.description,
-        'emoji': goal.emoji,
+        'title': autoCompleted.title,
+        'category': autoCompleted.category,
+        'target': autoCompleted.target,
+        'current': autoCompleted.current,
+        'deadline': autoCompleted.deadline,
+        'createdAt': autoCompleted.createdAt.toIso8601String(),
+        'priority': autoCompleted.priority,
+        'description': autoCompleted.description,
+        'emoji': autoCompleted.emoji,
         'data': json.encode(map),
       },
       where: 'id = ?',
-      whereArgs: [goal.id],
+      whereArgs: [autoCompleted.id],
     );
   }
 
@@ -81,7 +83,12 @@ class GoalDbService {
     if (rows.isEmpty) return;
     final goal = Goal.fromMap(json.decode(rows.first['data'] as String));
     final newContributions = List<GoalTransaction>.from(goal.contributions)..add(tx);
-    final updated = goal.copyWith(contributions: newContributions, current: goal.current + tx.amount);
+    final newCurrent = goal.current + tx.amount;
+    final updated = goal.copyWith(
+      contributions: newContributions,
+      current: newCurrent,
+      isCompleted: newCurrent >= goal.target ? true : goal.isCompleted,
+    );
     await updateGoal(updated);
   }
 
